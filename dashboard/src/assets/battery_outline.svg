@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="150px" height="60px" viewBox="0 0 150 60" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <!-- Generator: Sketch 50.2 (55047) - http://www.bohemiancoding.com/sketch -->
+    <title>battery_outline</title>
+    <desc>Created with Sketch.</desc>
+    <defs></defs>
+    <g id="Sprint_3_Alerts_contact_centre" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="portal_home" transform="translate(-40.000000, -403.000000)" stroke="#BFBFBF">
+            <path d="M185,423.5 L181.5,423.5 L181.5,408 C181.5,405.514719 179.485281,403.5 177,403.5 L45,403.5 C42.5147186,403.5 40.5,405.514719 40.5,408 L40.5,458 C40.5,460.485281 42.5147186,462.5 45,462.5 L177,462.5 C179.485281,462.5 181.5,460.485281 181.5,458 L181.5,442.5 L185,442.5 C187.485281,442.5 189.5,440.485281 189.5,438 L189.5,428 C189.5,425.514719 187.485281,423.5 185,423.5 Z" id="battery_outline"></path>
+        </g>
+    </g>
+</svg>

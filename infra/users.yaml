@@ -1,0 +1,260 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Parameters:
+  MyUserEmail:
+    Type: String
+  MyUsername:
+    Type: String
+  SmsAuthenticationMessageText:
+    Type: String
+    Default: Enter {####} to authenticate in ProtoBYOD.
+  SmsVerificationMessageText:
+    Type: String
+    Default: Enter {####} to verify your cellphone in ProtoBYOD.
+Resources:
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      AliasAttributes: 
+        - email
+        - preferred_username
+      AutoVerifiedAttributes:
+        - email
+      MfaConfiguration: "OPTIONAL"
+      SmsAuthenticationMessage: !Ref SmsAuthenticationMessageText
+      SmsConfiguration:
+        ExternalId: EXPERIMENT
+        SnsCallerArn: !GetAtt UserPoolSMSSNSCallerRole.Arn
+      SmsVerificationMessage: !Ref SmsVerificationMessageText
+      UserPoolName: ProtoBYODUsers
+      UserPoolTags: 
+        Component: ProtoBYOD
+        Role: iotcc
+  ProtoBYODAdmins:
+    Type: "AWS::Cognito::UserPoolGroup"
+    Properties:
+      Description: Group for the ProtoBYOD admins
+      GroupName: admin
+      Precedence: 0
+      RoleArn: !GetAtt AdminRole.Arn
+      UserPoolId: !Ref UserPool
+  AdminRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+      Policies:
+        - 
+          PolicyName: "ManageUsers"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Sid: "UserManagement"
+                Action:
+                  - "cognito-idp:*"
+                Effect: Allow
+                Resource: 
+                  - !Sub "arn:aws:cognito-idp:${AWS::Region}:${AWS::AccountId}:userpool/${UserPool}" 
+              - 
+                Sid: "IotManagement"
+                Action: 
+                  - "iot:*"
+                Effect: Allow
+                Resource: "*"
+              - 
+                Sid: "TableManagement"
+                Action: 
+                  - "dynamodb:*"
+                Effect: Allow
+                Resource: "*"
+  MyUser:
+    Type: "AWS::Cognito::UserPoolUser"
+    Properties:
+      DesiredDeliveryMediums: 
+        - EMAIL
+      UserAttributes: 
+        - 
+          Name: email
+          Value: !Ref MyUserEmail
+      Username: !Ref MyUsername
+      UserPoolId: !Ref UserPool
+  MyUserGroupAttachment:
+    Type: AWS::Cognito::UserPoolUserToGroupAttachment
+    Properties:
+      GroupName: !Ref ProtoBYODAdmins
+      Username: !Ref MyUser
+      UserPoolId: !Ref UserPool
+  UserPoolSMSSNSCallerRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "cognito-idp.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        - 
+          PolicyName: "SMSSending"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Effect: "Allow"
+                Action: ["sns:publish"]
+                Resource: "*"
+  SNSLogSentMessagesRole:
+    Type: AWS::IAM::Role
+    Properties: 
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Service: 
+                - "sns.amazonaws.com"
+            Action: 
+              - "sts:AssumeRole"
+      Policies:
+        - 
+          PolicyName: "CloudWatchLogs"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Sid: "WriteLogs"
+                Action:
+                  - "logs:CreateLogGroup"
+                  - "logs:CreateLogStream"
+                  - "logs:PutLogEvents"
+                Effect: "Allow"
+                Resource: "*"
+  IotPolicy:
+    Type: "AWS::IoT::Policy"
+    Properties:
+      PolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Sid: "WriteLogs"
+            Action:
+              - "iot:*"
+            Effect: "Allow"
+            Resource: "*"
+  IdentityPool:
+    Type: AWS::Cognito::IdentityPool
+    Properties:
+      AllowUnauthenticatedIdentities: Yes
+      IdentityPoolName: BYODIdentities
+      CognitoIdentityProviders:
+        -
+          ClientId: !Ref UserPoolDashboardClient
+          ProviderName: !GetAtt UserPool.ProviderName
+  IdentityPoolRoleAttachment:
+    Type: AWS::Cognito::IdentityPoolRoleAttachment
+    Properties:
+      IdentityPoolId: !Ref IdentityPool
+      Roles:  
+        authenticated: !GetAtt IdentityPoolAuthenticatedRole.Arn
+        unauthenticated: !GetAtt IdentityPoolUnauthenticatedRole.Arn
+  IdentityPoolAuthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - 
+            Effect: Allow
+            Principal:
+              Federated: "cognito-identity.amazonaws.com"
+            Action:
+              - "sts:AssumeRoleWithWebIdentity"
+      Policies:
+        - 
+          PolicyName: "ManageMyStuff"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              -
+                Sid: "MyDynamoItems"
+                Effect: Allow
+                Action: 
+                  - "dynamodb:GetItem"
+                  - "dynamodb:UpdateItem"
+                  - "dynamodb:Query"
+                Resource: '*'
+        - 
+          PolicyName: "IotStuff"
+          PolicyDocument:
+            Version: "2012-10-17"
+            Statement: 
+              -
+                Sid: "MyDynamoItems"
+                Effect: Allow
+                Action: 
+                  - "iot:*"
+                Resource: '*'
+  IdentityPoolUnauthenticatedRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement: 
+          - 
+            Effect: "Allow"
+            Principal: 
+              Federated: "cognito-identity.amazonaws.com"
+            Action: 
+              - "sts:AssumeRoleWithWebIdentity"
+      Policies:
+        - 
+          PolicyName: "PinpointEvents"
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement: 
+              - 
+                Sid: "PutEvents"
+                Action:
+                  - "mobileanalytics:PutEvents"
+                Effect: "Allow"
+                Resource: "*"
+  UserPoolDashboardClient:
+    Type: "AWS::Cognito::UserPoolClient"
+    Properties:
+      ClientName: dashboard
+      GenerateSecret: false
+      UserPoolId: !Ref UserPool
+Outputs:
+  AwsRegion:
+    Description: Region where the solution is deployed
+    Value: !Ref AWS::Region
+  AwsAccountId:
+    Description: Account ID where the solution is deployed
+    Value: !Ref AWS::AccountId
+  UserPoolId:
+    Description: ID of the user pool
+    Value: !Ref UserPool
+  UserPoolProviderName:
+    Description: Name of the provider of the user pool
+    Value: !GetAtt UserPool.ProviderName
+  UserPoolClientId:
+    Value: !Ref UserPoolDashboardClient
+    Description: User Pool Client Id
+  IdentityPoolId:
+    Description: ID of the Identity Pool
+    Value: !Ref IdentityPool
+  IotPolicyName:
+    Description: Name of the people iot policy
+    Value: !Ref IotPolicy

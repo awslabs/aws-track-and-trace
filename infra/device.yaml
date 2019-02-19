@@ -1,0 +1,19 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Resources:
+  DevicePolicy:
+    Type: AWS::IoT::Policy
+    Properties:
+      PolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          -
+            Sid: "GreengrassAccess"
+            Action:
+              - "greengrass:*"
+              - "iot:*"
+            Effect: Allow
+            Resource: "*"
+Outputs: 
+  DevicePolicyName:
+    Value: !Ref DevicePolicy
+    Description: Name of the policy used for the devices
