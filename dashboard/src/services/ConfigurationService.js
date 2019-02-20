@@ -1,4 +1,3 @@
-import { ConfigService } from 'aws-sdk'
 import DefaultConfig from '@/assets/config.json'
 
 export default class ConfigurationService {
@@ -25,7 +24,7 @@ export default class ConfigurationService {
   set (item, value, overwrite = false) {
     const existing = this.data[item]
     if (existing !== undefined && !overwrite) {
-      throw ConfigService.ITEM_ALREADY_EXISTS_EXCEPTION(item)
+      throw ConfigurationService.ITEM_ALREADY_EXISTS_EXCEPTION(item)
     }
 
     this.data[item] = value

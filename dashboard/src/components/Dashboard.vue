@@ -30,13 +30,8 @@ import IotService from '@/services/IotService';
 export default {
   name: 'dashboard',
   components: {
-    FleetAlerts,
-    FleetLanding,
     FleetMap,
-    FleetTable,
     Footer,
-    PageHeader,
-    Sidebar,
     VehicleStatus
   },
   data () {
