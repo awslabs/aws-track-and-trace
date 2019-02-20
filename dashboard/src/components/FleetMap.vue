@@ -58,8 +58,8 @@
         </h3>
       </div>
       <div class="block-content block-content-full">
-        <div class="row">
-          <div class="col map-actions">
+        <div class="row map-actions">
+          <div class="col">
             <button class="btn" :class="action.classes[action.status]" v-for="(action, index) in mapActions" :key="index" @click="actionClick(action)">
               <i :class="action.icons[action.status]"></i>
               {{ action.label }}
@@ -493,7 +493,7 @@ export default {
     left: 0px;
     width: 265px;
     min-height: 100px;
-    background: rgba(255, 255, 255, .6);
+    background: rgba(255, 255, 255, .7);
     z-index: 10;
     border-bottom-right-radius: 1em;
     padding-bottom: 1em;
@@ -502,18 +502,21 @@ export default {
       font-size: 2em;
     }
 
-    .map-actions button {
-      display: block;
-      margin: 1em 0;
-      width: 100%;
+    .map-actions {
+      padding: .5em 1em;
+      button {
+        display: block;
+        margin: 1em 0;
+        width: 100%;
 
-      i {
-        float: left;
-        margin-top: 3px;
-      }
+        i {
+          float: left;
+          margin-top: 3px;
+        }
 
-      &:first-child {
-        margin-top: 0px;
+        &:first-child {
+          margin-top: 0px;
+        }
       }
     }
   }
