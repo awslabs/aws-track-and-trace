@@ -9,10 +9,10 @@ echo "INFO: Configuring UI"
 # Configurable parameters start #
 #################################
 
-export STACK_NAME="DashboardUsers"
+export STACK_NAME="AWSFleetManagementSample"
 export AWS_REGION="eu-west-1"
-export COGNITO_CUSTOM_DOMAIN="techsummit2018-byod" # Change this with your own
-export APP_CLIENT_NAME="TechSummitBYOD"
+export COGNITO_CUSTOM_DOMAIN="aws-fleet-management" # Change this with your own
+export APP_CLIENT_NAME="AWSFleetManagement"
 
 #################################
 # Configurable parameters end   #
