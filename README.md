@@ -4,15 +4,15 @@ Sample system to track and trace vehicles and assets in the cloud. This project 
 
 ## Getting started
 
-This project uses the [AWS Cloud Development Kit](https://github.com/awslabs/aws-cdk) - aka CDK - for describing the infrastructure resources needed. These resources are eventually synthetised into a CloudFormation template so it could equally be spun up directly through CloudFormation. 
+This project uses the [AWS Cloud Development Kit](https://github.com/awslabs/aws-cdk) - aka CDK - for describing the infrastructure resources needed. 
 
-_NOTE: Independently of the deployment method you choose for spinning up the solution, upon deploying the solution you will need to execute some manual steps. Please refer to the [MANUAL_CONFIG](./MANUAL_CONFIG.md) page for details._
+_NOTE: Upon deploying the solution you will need to execute some manual steps. Please refer to the [MANUAL_CONFIG](./MANUAL_CONFIG.md) page for details._
 
-### Direct deployment
+### Prerequisites
 
 TODO
 
-### CDK Deployment
+### Deploying the solution
 
 TODO
 
