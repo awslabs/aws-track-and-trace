@@ -282,19 +282,14 @@
 import moment from 'moment';
 
 import BatteryLevel from '@/components/BatteryLevel';
-import FleetMap from '@/components/FleetMap';
-import TripMap from '@/components/TripMap';
 import TyrePressure from '@/components/TyrePressure';
 
 import IotService from '@/services/IotService';
-import VehicleService from '@/services/VehicleService';
 
 export default {
   name: 'vehicleStatus',
   components: {
     BatteryLevel,
-    FleetMap,
-    TripMap,
     TyrePressure
   },
   data () {
@@ -353,7 +348,6 @@ export default {
   },
   created () {
     this.iotService = IotService.getInstance();
-    this.vehicleService = VehicleService.getInstance();
   },
   mounted () {
     this.fetchData()
@@ -365,7 +359,6 @@ export default {
       console.log('INFO: Subscribing to topics');
       vehiclesClient.subscribe(`$aws/things/${vin}/shadow/get/accepted`);
       vehiclesClient.subscribe(`$aws/things/${vin}/shadow/update/accepted`);
-      vehiclesClient.subscribe(`connectedcar/+/${vin}`);
     });
 
     vehiclesClient.on('message', (topic, payload) => {
