@@ -16,18 +16,11 @@ export default class IotService {
     this.iot = new aws.Iot({
       credentials, region
     });
-
-    const endpoint = this.configService.get('IOT_ENDPOINT');
-    this.iotData = new aws.IotData({
-      credentials,
-      endpoint,
-      region
-    });
   }
 
   connect () {
     const credentials = this.authService.getCredentials()
-    this.iot = new aws.IotData({
+    this.iotData = new aws.IotData({
       endpoint: this.configService.get('IOT_ENDPOINT'),
       region: this.configService.get('AWS_REGION'),
       credentials

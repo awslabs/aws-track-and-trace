@@ -13,9 +13,9 @@
     "build": "node build/build.js"
   },
   "dependencies": {
-    "async": "^2.6.1",
+    "async": "^2.6.2",
     "aws-iot-device-sdk": "^2.2.1",
-    "aws-sdk": "^2.268.1",
+    "aws-sdk": "^2.406.0",
     "chart.js": "^2.7.2",
     "jwt-decode": "^2.2.0",
     "mapbox-gl": "^0.51.0",

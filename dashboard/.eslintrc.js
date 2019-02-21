@@ -25,6 +25,7 @@ module.exports = {
     'generator-star-spacing': 'off',
     // allow debugger during development
     'no-debugger': process.env.NODE_ENV === 'production' ? 'error' : 'off',
-    'vue/require-v-for-key': 0
+    'vue/require-v-for-key': 'error',
+    'vue/no-use-v-if-with-v-for': 'off'
   }
 }
