@@ -24,9 +24,9 @@ After your certificate status transitions to `Verified`, you can use the certifi
 
 #### Configure distribution aliases
 
-Apart from registering your certificate, you need to reference the domain you wish to use, so upon system's deployment all neccessary linkings happen successfully. There are two parameters that you will need to referenxe on the template/construct:
+Apart from registering your certificate, you need to reference the domain you wish to use, so upon system's deployment all neccessary linkings happen successfully. There are two parameters that you will need to reference on the template/construct:
 
-* **Hosted Zone ID:** Used to create all needed record sets for reference your distribution there.
+* **Hosted Zone ID:** Used to create all needed record sets for reference your distribution there. If you don't specify this one
 * **UI Domain name:** Select the domain name you want to use for accessing your solution - e.g. `myfleet.mywebsite.com` - so the deployment can link your distribution successfully with the domain.
 
 ## AFTER deployment

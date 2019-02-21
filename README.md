@@ -12,8 +12,6 @@ Sample system to track and trace vehicles and assets in the cloud. This project 
 
 This project uses the [AWS Cloud Development Kit](https://github.com/awslabs/aws-cdk) - aka CDK - for describing the infrastructure resources needed. 
 
-_NOTE: Upon deploying the solution you will need to execute some manual steps. Please refer to the [MANUAL_CONFIG](./MANUAL_CONFIG.md) page for details._
-
 ### Prerequisites
 
 You will need to have the following software installed in your workstation to successfully deploy this project:
@@ -23,7 +21,11 @@ You will need to have the following software installed in your workstation to su
 * **jq:** You need the [`jq`](https://stedolan.github.io/jq/) cli to configure your system.
 * **Clone this repository:** Get the contents of the project in your machine.
 
-### Preparing the infrastructure
+### Deploying the infrastructure
+
+The infrastructure for this solution must be deployed complying with the following flow:
+
+![Deployment flow](/static/deployment-flow.png)
 
 #### Configuring the project
 
@@ -89,23 +91,9 @@ Is your infrastructure not deploying correctly? Take a look at the [TROUBLESHOOT
 
 _NOTE: Remember to execute the [After deployment manual steps](./MANUAL_CONFIG.md#after-deployment)_ to fully configure the infrastructure once it finishes deploying.
 
-### Deploying the UI
+### Delivering the UI
 
-Once your infrastructure is ready, we need to configure and deploy the UI code into it so we could access it and use it. 
-
-#### Reflecting the deployment manual steps
-
-Once you've finished up executing your manual steps, you will have several values to reflect in the infrastructure so the system could work successfully. You will therefore need to edit your `infra/config.json` file to include these values:
-
-```json
-{
-  ...
-  "auth": {
-    "domain": "myfleetauth or auth.myfleet.example.com",
-    "fqdn?": "aabbccdd.cloudfront.net"
-  }
-}
-```
+Once your infrastructure is ready, we need to configure and deliver the UI code into it so we could access it and use it.
 
 TODO Maps API Keys and other stuff.
 
