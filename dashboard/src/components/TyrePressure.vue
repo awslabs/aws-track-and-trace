@@ -54,21 +54,6 @@ export default {
     margin: 0em auto;
     max-width: 400px;
     min-height: 200px;
-    
-    &.sport {
-      background: url('../assets/jf-top-big.png') center center no-repeat;
-      background-size: auto 100%;
-    }
-
-    &.suv {
-      background: url('../assets/rr-top-big.png') center center no-repeat;
-      background-size: auto 100%;
-    }
-
-    &.amazon {
-      background: url('../assets/amz-top.png') center center no-repeat;
-      background-size: auto 100%;
-    }
 
     .recommended-pressure {
       position: absolute;

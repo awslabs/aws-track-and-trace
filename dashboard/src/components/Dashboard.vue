@@ -73,8 +73,8 @@ export default {
     width: 300px;
     height: 70px;
     z-index: 10;
-    background: rgba(255, 255, 255, 0.7) url('../assets/logo-w-text.png') 20px 10px no-repeat;
-    background-size: 182px 50px;
+    background: rgba(255, 255, 255, 0.7) url('../assets/logo-w-text.png') 10px 5px no-repeat;
+    background-size: 218px 60px;
     border-top-right-radius: 35px;
     border-bottom-right-radius: 35px;
 

@@ -127,21 +127,6 @@ body {
         width: 100%;
         height: 100%;
       }
-
-      &.suv .icon {
-        background: url('assets/rr-top.png') center center no-repeat;
-        background-size: 100% auto;
-      }
-
-      &.sport .icon {
-        background: url('assets/jf-top.png') center center no-repeat;
-        background-size: 100% auto;
-      }
-
-      &.amazon .icon {
-        background: url('assets/amz-top.png') center center no-repeat;
-        background-size: 100% auto;
-      }
     }
   }
 }
