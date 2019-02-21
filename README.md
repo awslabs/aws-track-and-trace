@@ -48,7 +48,19 @@ Once you have a local copy of the project in your local machine, you need to con
 }
 ```
 
-_NOTE: All values whose key end with a question mark - i.e. `?` - are optional values._
+_NOTE: All parameters ending with a question mark are optional._
+
+* **General:** Basic information about the deployment.
+* * **Name:** Human friendly name of your solution.
+* * **Description:** Description of your solution.
+* **Administrator:** Information about the administrator user
+* * **Name:** Full name of the administrator user.
+* * **Email:** Email address of the administrator user.
+* * **Username:** User name for the admin user.
+* * **Phone:** Phone number of the admin user.
+* **Dns:** Information about the DNS records.
+* * **Fqdn:** Domain name of the solution.
+* * **Hosted_zone:** ID of the existing hosted zone.
 
 Configure the values to your best convenience and store the result at `infra/config.json`. This file will configure your deployment once we move forward.
 
