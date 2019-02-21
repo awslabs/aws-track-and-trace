@@ -73,7 +73,7 @@ This will kickstart the deployment process, which may take about 15-20 minutes t
 
 The `cdk deploy` task will synchronously create the resources and wait for their completion, so you will see all progress appearing in the console. To see the detailed status of the deployment, you can also follow it from the [CloudFormation console](https://eu-west-1.console.aws.amazon.com/cloudformation/home). Once the infrastructure finishes deploying, we could safely continue to the next steps.
 
-Is your infrastructure not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-infrastructure-spin-up)
+Is your infrastructure not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-infrastructure-spin-up) section.
 
 _NOTE: Remember to execute the [After deployment manual steps](./MANUAL_CONFIG.md#after-deployment)_ to fully configure the infrastructure once it finishes deploying.
 
@@ -114,7 +114,7 @@ In order for the UI to fully comprehend the underlying infrastructure, we need t
 
 Once your UI finishes configuring, you are ready to deploy it. From the project's root folder, run `npm run deploy:ui`.
 
-Is your infrastructure not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-ui-deployment)
+Is the UI not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-ui-deployment) section.
 
 When your deployment finishes successfully you could start testing it by accessing its URL. If you have configured your custom domain you could simply navigate to it - e.g. `myfleet.example.com`. Otherwise you'll need to retrieve the distribution URL, which will be the entry point to your solution. From the project's root folder execute `npm run get:ui-entry-point`. It will print the distribution URL to the standard output.
 
@@ -135,3 +135,8 @@ TODO Processes
 ## License Summary
 
 This sample code is made available under a modified MIT license. See the [LICENSE](./LICENSE.md) file.
+
+### Graphical content
+
+* **Landing page background image:** Licensed under the [Pixabay license](https://pixabay.com/en/service/license/).
+
