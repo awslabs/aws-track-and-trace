@@ -1,3 +1,6 @@
-config.json
-config.*.json
-!config.sample.json
+config.ts
+config.*.ts
+!config.sample.ts
+
+config.js
+config.*.js
