@@ -65,3 +65,14 @@ _NOTE: If you've chosen to use your custom domain, you may need to create anothe
 ![Cognito Alias setup](/static/cognito-domain-alias-setup.png)
 
 Once these steps have been completed, you can deploy the solution again, and reference all values as their corresponding parameters' values.
+
+#### Configure Identity Role Mappings
+
+Your Cognito User Pool is configured to have Groups, which will allow you to characterize your users based on their responsibilities and assign different permissions to them. We need to perform a manual step to tell your Cognito Identity Pool to assign your users the role based on the group they belong to.
+
+* Navigate to the Cognito Identity Pool console and open your Identity Pool.
+* Click on _Edit Identity Pool_.
+* Open the _Authentication Providers_ section and select your Cognito Authentication provider.
+* Open the dropdown that says _Use default Role_ and select _Choose role from token_ instead. Leave the _Role resolution_ combobox as default.
+
+![Cognito role mappings](/static/cognito-role-mapping.png)
