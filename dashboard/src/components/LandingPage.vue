@@ -49,7 +49,7 @@ export default {
     align-items: flex-end;
     padding: 1em;
     flex-wrap: wrap;
-    background: url('/static/background.jpg') center center no-repeat;
+    background: url('/static/background.jpg') top center no-repeat;
     background-size: cover;
 
     .intro-content {
