@@ -10,7 +10,11 @@
     "husky": "^1.3.1"
   },
   "scripts": {
-    "test": "test"
+    "test": "test",
+    "build:infra": "bash scripts/prepare-infra.sh",
+    "configure:ui": "bash scripts/configure-ui.sh",
+    "deploy:ui": "bash scripts/deploy-ui.sh",
+    "get:ui-entry-point": "bash scripts/get-ui-entry-point.sh"
   },
   "repository": {
     "type": "git",
