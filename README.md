@@ -139,4 +139,4 @@ This sample code is made available under a modified MIT license. See the [LICENS
 ### Graphical content
 
 * **Landing page background image:** Licensed under the [Pixabay license](https://pixabay.com/en/service/license/).
-
+* **Logo**: Truck licensed under the [Pixabay license](https://pixabay.com/en/service/license/), modified to include the AWS logo and the solution title.
