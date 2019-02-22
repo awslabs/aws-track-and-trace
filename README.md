@@ -113,7 +113,14 @@ This process will deploy the infrastructure responsible of serving your system.
 
 _NOTE: Optionally, you can run `cdk synth` to output a CloudFormation template of your infrastructure definition, to spin it up using CloudFormation directly._
 
-This will kickstart the deployment process, which may take about 15-20 minutes to complete. Time for a coffee :).
+This will kickstart the deployment process, which may take about 15-20 minutes to complete. Time for a coffee :). Then, you need to open the file `scripts/config.sample.sh` and set the following values - most of them present at `infra/config.ts`. Then save the file as `scripts/config.sh`. These values will be used from the delivery scripts to configure the system prior delivery.
+
+```sh
+export STACK_NAME="AWSTrackAndTrace" # Map this from infra/config.ts > general.solutionName
+export AWS_REGION="eu-west-1" # Change this if you deploy in a region different than Ireland
+```
+
+The last configuration process before being ready to deliver is to store the infrastructure resource identifiers in a file so our delivery scripts can fetch them. From the project's root folder, run `npm run configure:infra`.
 
 #### Post deployment tasks
 
@@ -123,17 +130,14 @@ After deploying the project, we need to execute certain tasks to fully configure
 * **Configure app client settings:** Prepare your Cognito User Pool to authenticate your users through the client. [More information](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-settings.html).
 * **Configure token-based role mappings:** Your Identity Pool supports giving dynamically roles to your users based on your token claims. 
 
-From the project's root folder, run `bash scripts/post-deployment-tasks <your-domain-name>`.
+From the project's root folder, run `npm configure:post-deployment <your-domain-name>`.
 
-Once you have executed this task, you need to open the file `scripts/config.sample.sh` and set the following values - most of them present at `infra/config.ts`. Then save the file as `scripts/config.sh`:
+Once you have executed this task, open the file `scripts/config.sh` and reflect your domain name there:
 
 ```sh
-export STACK_NAME="AWSTrackAndTrace" # Map this from infra/config.ts > general.solutionName
-export AWS_REGION="eu-west-1" # Change this if you deploy in a region different than Ireland
+...
 export COGNITO_CUSTOM_DOMAIN="<your-domain-name>"
 ```
-
-These values will be used from the delivery scripts to configure the system prior delivery.
 
 ### Delivering the solution
 
@@ -156,7 +160,7 @@ Once your UI finishes configuring, you are ready to deploy it. From the project'
 
 Is the UI not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-ui-deployment) section.
 
-When your deployment finishes successfully you could start testing it by accessing its URL. If you have configured your custom domain you could simply navigate to it - e.g. `myfleet.example.com`. Otherwise you'll need to retrieve the distribution URL, which will be the entry point to your solution. From the project's root folder execute `npm run get:ui-entry-point`. It will print the distribution URL to the standard output.
+When your deployment finishes successfully you could start testing it by accessing its URL. If you have configured your custom domain you could simply navigate to it - e.g. `myfleet.example.com`. Otherwise you'll need to retrieve the distribution URL, which will be the entry point to your solution. From the project's root folder execute `npm run get:entry`. It will print the distribution URL to the standard output.
 
 ## Using the system
 
@@ -172,7 +176,11 @@ Click on the _Access_ button to start the authentication process. You should be 
 
 The UI is a Single Page Application that renders a fullscreen map and certain tools to interact with the solution. The first time you access the map it should have no assets present. You should be able to zoom and pan the map to your desire.
 
-TODO Processes
+### Adding assets
+
+You can add as many assets as you want to be shown in your map. An asset is - in essence - an [AWS IoT Thing](https://docs.aws.amazon.com/iot/latest/developerguide/iot-thing-management.html). This _Thing_ will have a state object that will handle the status of your asset at all times. Your asset can also send _telemetry_ information, that will not be stored as state, but used for rendering and reporting processes.
+
+Once you have identified the name of the Things you want to track, you can click in the 
 
 ## License Summary
 
