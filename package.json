@@ -12,9 +12,11 @@
   "scripts": {
     "test": "test",
     "build:infra": "bash scripts/prepare-infra.sh",
+    "configure:infra": "bash scripts/configure-infra.sh",
+    "configure:post-deployment": "bash scripts/post-deployment-tasks.sh",
     "configure:ui": "bash scripts/configure-ui.sh",
     "deploy:ui": "bash scripts/deploy-ui.sh",
-    "get:ui-entry-point": "bash scripts/get-ui-entry-point.sh"
+    "get:entry": "bash scripts/get-ui-entry-point.sh"
   },
   "repository": {
     "type": "git",
