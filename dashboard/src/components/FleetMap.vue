@@ -11,12 +11,12 @@
       <GmapMarker
         v-if="google"
         :key="`v${index}`"
-        v-for="(vehicle, index) in vehicles"
-        :position="parseLocation(vehicle)"
+        v-for="(asset, index) in assets"
+        :position="parseLocation(asset)"
         :clickable="true"
         :draggable="false"
-        @click="clickVehicle(vehicle)"
-        :icon="getMapIcon(vehicle)"
+        @click="clickVehicle(asset)"
+        :icon="getMapIcon(asset)"
       />
       <GmapCircle
         v-if="google && mapActions[2].status === 'enabled'"
@@ -27,46 +27,11 @@
         :draggable="false"
         :radius="alert.radius"
         :options="alert.options"
-        @click="clickVehicle(vehicle)"
+        @click="clickVehicle(asset)"
       />
     </GmapMap>
-    <div class="map-overlay-menu" v-if="config.overlayMenu">
-      <div class="block-header">
-        <h3 class="block-title">
-          Fleet Overview
-        </h3>
-      </div>
-      <div class="block-content block-content-full">
-        <div class="row">
-          <div class="col">
-            <div class="info-item text-dark">
-              <i class="fas fa-car"></i>
-              {{ vehicles.length }}
-            </div>
-          </div>
-          <div class="col">
-            <div class="info-item text-warning">
-              <i class="fas fa-exclamation-triangle"></i>
-              {{ numAlerts }}
-            </div>
-          </div>
-        </div>
-      </div>
-      <div class="block-header">
-        <h3 class="block-title">
-          Overlay layers
-        </h3>
-      </div>
-      <div class="block-content block-content-full">
-        <div class="row map-actions">
-          <div class="col">
-            <button class="btn" :class="action.classes[action.status]" v-for="(action, index) in mapActions" :key="index" @click="actionClick(action)">
-              <i :class="action.icons[action.status]"></i>
-              {{ action.label }}
-            </button>
-          </div>
-        </div>
-      </div>
+    <div class="map-overlay-menu">
+      <fleet-map-menu :assets="assets"></fleet-map-menu>
     </div>
   </div>
 </template>
@@ -76,88 +41,26 @@ import { gmapApi } from 'vue2-google-maps';
 import nameGenerator from 'project-name-generator';
 import randomColor from 'randomcolor';
 
+import FleetMapMenu from '@/components/FleetMapMenu';
+
 import ConfigurationService from '@/services/ConfigurationService';
 import IotService from '@/services/IotService';
 
 export default {
   name: 'ComponentCamelName',
   props: ['mapCenter', 'mapClick', 'mapItems', 'mapZoom', 'width', 'height', 'enableOverlayMenu'],
+  components: {
+    FleetMapMenu
+  },
   data () {
     return {
-      config: {
-        overlayMenu: this.enableOverlayMenu !== undefined ? this.enableOverlayMenu : false
-      },
       zoom: this.mapZoom || 6,
-      center: [-1.4776583, 52.1837845],
+      center: {
+        lat: 43.3695167, 
+        lng: -5.8661674
+      },
       url:'http://aws.amazon.com',
       attribution:'Amazon Web Services',
-      mapActions: [
-        {
-          label: 'Inactive vehicles',
-          status: 'enabled',
-          icons: {
-            disabled: 'far fa-circle',
-            enabled: 'fas fa-circle'
-          },
-          classes: {
-            disabled: 'btn-outline-warning',
-            enabled: 'btn-warning'
-          }
-        },
-        {
-          label: 'Abandoned vehicles',
-          status: 'enabled',
-          icons: {
-            disabled: 'far fa-circle',
-            enabled: 'fas fa-circle'
-          },
-          classes: {
-            disabled: 'btn-outline-danger',
-            enabled: 'btn-danger'
-          }
-        },
-        {
-          label: 'Geo alerts',
-          status: 'enabled',
-          icons: {
-            disabled: 'far fa-circle',
-            enabled: 'fas fa-circle'
-          },
-          classes: {
-            disabled: 'btn-outline-primary',
-            enabled: 'btn-primary'
-          }
-        },
-        {
-          label: 'Add zone',
-          status: 'disabled',
-          icons: {
-            disabled: 'fas fa-plus-circle',
-            enabled: 'fas fa-plus-circle'
-          },
-          classes: {
-            disabled: 'btn-outline-success',
-            enabled: 'btn-success'
-          }
-        },
-        {
-          label: 'Clear zones',
-          status: 'disabled',
-          icons: {
-            disabled: 'fas fa-times-circle',
-            enabled: 'fas fa-times-circle'
-          },
-          classes: {
-            disabled: 'btn-outline-danger',
-            enabled: 'btn-outline-danger'
-          },
-          actions: {
-            click: () => {
-              this.clearPois();
-            }
-          }
-        }
-      ],
       mapOptions: {
         zoomControl: false,
         mapTypeControl: false,
@@ -172,7 +75,7 @@ export default {
       },
       mapMarkers: [],
       pois: [],
-      vehicles: this.mapItems || [],
+      assets: this.mapItems || [],
       warnings: []
     }
   },
@@ -180,8 +83,8 @@ export default {
     google: gmapApi,
     
     numAlerts () {
-      const ret = this.vehicles.filter(vehicle => {
-        const mapIcon = this.getMapIcon(vehicle);
+      const ret = this.assets.filter(asset => {
+        const mapIcon = this.getMapIcon(asset);
         if (mapIcon.warnings && mapIcon.warnings.length) {
           return true
         }
@@ -192,23 +95,17 @@ export default {
   },
   created () {
     this.configurationService = ConfigurationService.getInstance();
-    // mapbox.accessToken = this.configurationService.get('MAPBOX_API_TOKEN');
-    const center = this.mapCenter || this.configurationService.get('VIRTUAL_VEHICLES_CENTER');
-    this.center = {
-      lat: center.latitude,
-      lng: center.longitude
-    };
 
     this.iotService = IotService.getInstance();
-    const vehiclesClient = this.iotService.connect();
-    vehiclesClient.on('connect', () => {
+    const assetsClient = this.iotService.connect();
+    assetsClient.on('connect', () => {
       console.log('INFO: Connected to AWS Iot');
       console.log('INFO: Subscribing to topics');
-      vehiclesClient.subscribe('$aws/things/+/shadow/get/accepted');
-      vehiclesClient.subscribe('$aws/things/+/shadow/update/accepted');
+      // assetsClient.subscribe('$aws/things/+/shadow/get/accepted');
+      // assetsClient.subscribe('$aws/things/+/shadow/update/accepted');
     });
 
-    vehiclesClient.on('message', (topic, payload) => {
+    assetsClient.on('message', (topic, payload) => {
       try {
         const jsonPayload = JSON.parse(payload);
         this.processMessage(topic, jsonPayload);
@@ -275,8 +172,8 @@ export default {
       }
     },
 
-    clickVehicle (vehicle) {
-      this.$router.push(`/dashboard/vehicle-status/${vehicle.vin}`);
+    clickVehicle (asset) {
+      this.$router.push(`/dashboard/asset-status/${asset.vin}`);
     },
 
     configureMap () {
@@ -292,17 +189,17 @@ export default {
     },
 
     async fetchData () {
-      console.log('INFO: Fetching vehicles');
+      console.log('INFO: Fetching assets');
       console.warn('WARN: This is not implemented');
     },
 
-    getMapIcon (vehicle) {
+    getMapIcon (asset) {
       const warnings = [];
       let tyresOk = true;
       const currentDate = (new Date().getTime() / 1000) | 0;
 
-      if (vehicle.systems && vehicle.systems.tyres) {
-        const lastUpdateTime = vehicle.systems.engine ? vehicle.systems.engine.lastSleepCycle : vehicle.location.lastUpdated;
+      if (asset.systems && asset.systems.tyres) {
+        const lastUpdateTime = asset.systems.engine ? asset.systems.engine.lastSleepCycle : asset.location.lastUpdated;
         
         if (lastUpdateTime < currentDate - 10*86400) {
           const scale = this.mapActions[1].status === 'enabled' ? 10 : 0;
@@ -327,19 +224,19 @@ export default {
             strokeColor: 'orange'
           }
         } else {
-          for (let tyreName in vehicle.systems.tyres) {
-            const tyre = vehicle.systems.tyres[tyreName];
+          for (let tyreName in asset.systems.tyres) {
+            const tyre = asset.systems.tyres[tyreName];
             if (tyre > 36 || tyre < 32) {
               warnings.push(`tyres-critical-values-${tyreName}`);
-              console.log(`Vehicle ${vehicle.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
+              console.log(`Vehicle ${asset.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
             } 
           }
         }
-      } else if (vehicle.tyres) {
-        vehicle.tyres.forEach(tyre => {
+      } else if (asset.tyres) {
+        asset.tyres.forEach(tyre => {
           if (tyre > 36 || tyre < 32) {
             warnings.push(`tyres-critical-values-${tyreName}`);
-            console.log(`Vehicle ${vehicle.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
+            console.log(`Vehicle ${asset.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
           }
         });
       }
@@ -348,7 +245,7 @@ export default {
       const fillColor = warnings && warnings.length ? 'yellow' : '#444';
       const fillOpacity = warnings && warnings.length ? .9 : 1;
       const strokeWeight = 2;
-      const strokeColor = vehicle.VehicleType === 'amazon' ? '#f29837' : '#444';
+      const strokeColor = asset.VehicleType === 'amazon' ? '#f29837' : '#444';
       return {
         path: this.google.maps.SymbolPath.CIRCLE,
         scale,
@@ -360,8 +257,8 @@ export default {
       };
     },
 
-    parseLocation (vehicle) {
-      const location = vehicle.location;
+    parseLocation (asset) {
+      const location = asset.location;
       if (location.latitude) {
         return {
           lat: location.latitude,
@@ -378,9 +275,9 @@ export default {
     processMessage (topic, payload) {
       const vin = topic.split('/')[2];
       const data = topic.indexOf('$aws') === 0 ? payload.state.reported : payload;
-      const item = this.vehicles.filter(item => item.vin === vin)[0];
+      const item = this.assets.filter(item => item.vin === vin)[0];
       if (item) {
-        console.log('INFO: Received request from vehicle to update location')
+        console.log('INFO: Received request from asset to update location')
         if (data.location instanceof Array) {
           item.location = {
             latitude: data.location[0],
@@ -399,8 +296,8 @@ export default {
         marker.remove();
       });
 
-      this.mapMarkers = this.vehicles.map(marker => {
-        // Parse AMZN vehicle location
+      this.mapMarkers = this.assets.map(marker => {
+        // Parse AMZN asset location
         // TODO Remove this
         // const marker = markerRef.hasOwnProperty('battery') ? {
         //   ...markerRef,
@@ -455,9 +352,12 @@ export default {
     }
   },
   watch: {
-    // vehicles () {
-    //   // this.renderMarkers();
-    // }
+    assets: {
+      handler () {
+        this.$forceUpdate();
+      },
+      deep: true
+    }
   }
 }
 </script>

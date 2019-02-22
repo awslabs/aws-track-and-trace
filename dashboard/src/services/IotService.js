@@ -40,74 +40,31 @@ export default class IotService {
     return device
   }
 
-  async getVehicleStatus (vehicle) {
+  async getAssetStatus (asset) {
     return new Promise((resolve, reject) => {
-      const thingName = vehicle.vin;
+      const thingName = asset;
       this.iotData.getThingShadow({
         thingName
       }, (err, data) => {
         if (err) {
-          console.error('ERROR: Failed to fetch vehicle status');
+          console.error('ERROR: Failed to fetch asset status');
           reject(err);
         }
         else {
-          console.log('INFO: Successfully fecthed vehicle status');
+          console.log('INFO: Successfully fecthed asset status');
 
           const parsedPayload = JSON.parse(data.payload);
           let originalState = parsedPayload.state.reported;
-          let originalMetadata = parsedPayload.metadata.reported;
-          
-          if (originalState.location instanceof Array) {
-            const oldLocation = originalState.location;
-
-            const parsedState = {
-              location: {
-                latitude: oldLocation[0],
-                longitude: oldLocation[1],
-                bearing: 0
-              },
-              systems: {
-                locks: {
-                  locked: originalState.door
-                },
-                trunk: {
-                  opened: originalState.trunk
-                },
-                tyres: {
-                  frontLeft: originalState.tires[0],
-                  frontRight: originalState.tires[1],
-                  rearLeft: originalState.tires[2],
-                  rearRight: originalState.tires[3]
-                },
-                mainBattery: {
-                  level: originalState.battery
-                },
-                clima: {
-                  temperature: 70
-                }
-              }
-            };
-
-            originalState = parsedState;
-
-          } 
-          
-          const lastLocationUpdate = originalMetadata.location ? originalMetadata.location.latitude ? originalMetadata.location.latitude.timestamp : originalMetadata.location instanceof Array ? originalMetadata.location[0].timestamp : 0 : 0;
-          originalState.location.lastUpdated = lastLocationUpdate;
-          const ret = {
-            ...vehicle,
-            ...originalState
-          }
-          resolve(ret);
+          resolve(originalState)
         }
       });
     });
   }
 
-  async getAllVehicleStatus (vehicles) {
+  async getAllAssetStatus (assets) {
     return new Promise((resolve, reject) => {
-      const tasks = vehicles.map(vehicle => cb => {
-        this.getVehicleStatus(vehicle)
+      const tasks = assets.map(asset => cb => {
+        this.getAssetStatus(asset)
           .then(data => cb(null, data))
           .catch(err => cb(err));
       });
@@ -144,42 +101,6 @@ export default class IotService {
               cb(null, data);
             }
           })
-        },
-
-        // Create virtual vehicles thing type
-        cb => {
-          const thingTypeName = this.configService.get('VIRTUAL_VEHICLES_THING_TYPE');
-          const thingTypeProperties = {
-            searchableAttributes: ['type']
-          };
-          this.iot.createThingType({
-            thingTypeName,
-            thingTypeProperties
-          }, (err, data) => {
-            if (err) {
-              cb(err);
-            } else {
-              cb(null, data);
-            }
-          })
-        },
-        
-        // Create real vehicles thing type
-        cb => {
-          const thingTypeName = this.configService.get('REAL_VEHICLES_THING_TYPE');
-          const thingTypeProperties = {
-            searchableAttributes: ['brand', 'model', 'version']
-          };
-          this.iot.createThingType({
-            thingTypeName,
-            thingTypeProperties
-          }, (err, data) => {
-            if (err) {
-              cb(err);
-            } else {
-              cb(null, data);
-            }
-          })
         }
       ], (err, data) => {
         if (err) {
@@ -193,7 +114,7 @@ export default class IotService {
     });
   }
 
-  async provisionVirtualVehicle (params) {
+  async provisionVirtualAsset (params) {
     return new Promise((resolve, reject) => {
       const thingTypeName = this.configService.get('VIRTUAL_VEHICLES_THING_TYPE');
       const thingName = params.vin;
@@ -203,23 +124,23 @@ export default class IotService {
         thingTypeName,
         attributePayload: {
           attributes: {
-            type: params.VehicleType
+            type: params.AssetType
           }
         }
       }, (err, data) => {
         if (err) {
-          console.error('ERROR: Failed to provision virtual vehicle');
+          console.error('ERROR: Failed to provision virtual asset');
           reject(err);
         } else {
-          console.log('INFO: Successfully provisioned virtual vehicle');
+          console.log('INFO: Successfully provisioned virtual asset');
           resolve(data);
         }
       });
     });
   }
 
-  async updateVehicleStatus (vehicle, status) {
-    const vin = vehicle.vin;
+  async updateAssetStatus (asset, status) {
+    const vin = asset.vin;
 
     return new Promise((resolve, reject) => {
       this.iotData.updateThingShadow({
@@ -231,10 +152,10 @@ export default class IotService {
         })
       }, (err, data) => {
         if (err) {
-          console.error('ERROR: Failed to update vehicle status');
+          console.error('ERROR: Failed to update asset status');
           reject(err);
         } else {
-          console.log('INFO: Successfully updated vehicle status');
+          console.log('INFO: Successfully updated asset status');
           resolve(data);
         }
       })
