@@ -26,7 +26,8 @@ config="{ \
   \"IDENTITY_POOL_ID\": \"${identity_pool_id}\", \
   \"COGNITO_CUSTOM_DOMAIN\": \"${COGNITO_CUSTOM_DOMAIN}\", \
   \"IOT_ENDPOINT\": \"${iot_endpoint}\", \
-  \"APP_CLIENT_NAME\": \"${APP_CLIENT_NAME}\"
+  \"APP_CLIENT_NAME\": \"${STACK_NAME}\", \
+  \"GMAPS_API_KEY\": \"${GOOGLE_MAPS_API_KEY}\"
 }"
 
 echo "INFO: Writing JSON configuration"

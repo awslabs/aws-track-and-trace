@@ -1,4 +1,5 @@
-import { Role, ServicePrincipal, PolicyStatement, FederatedPrincipal, PolicyDocument, CfnPolicy } from '@aws-cdk/aws-iam';
+import { Role, PolicyStatement, FederatedPrincipal, PolicyDocument } from '@aws-cdk/aws-iam';
+import { CfnPolicy } from '@aws-cdk/aws-iot';
 import { CfnUserPool, CfnUserPoolClient, CfnIdentityPool, CfnIdentityPoolRoleAttachment, CfnUserPoolGroup } from '@aws-cdk/aws-cognito';
 import { Construct, Aws } from '@aws-cdk/cdk';
 
@@ -11,17 +12,11 @@ import { Construct, Aws } from '@aws-cdk/cdk';
  */
 export class Auth extends Construct {
 
-  /** @returns the role that sends the sms */
-  public readonly smsCallerRole: Role;
-
   /** @returns the cognito user pool */
   public readonly userPool: CfnUserPool;
 
   /** @returns the cognito user pool client */
   public readonly userPoolClient: CfnUserPoolClient;
-
-  /** @returns the cognito user pool client for mobile apps */
-  public readonly userPoolMobileClient: CfnUserPoolClient;
 
   /** @returns the cognito identity pool */
   public readonly identityPool: CfnIdentityPool;
@@ -51,15 +46,6 @@ export class Auth extends Construct {
     const awsRegion = aws.region;
     const awsAccountId = aws.accountId;
 
-    this.smsCallerRole = new Role(this, 'SmsCallerRole', {
-      assumedBy: new ServicePrincipal('cognito-idp.amazonaws.com')
-    });
-
-    this.smsCallerRole.addToPolicy(new PolicyStatement()
-      .addAction('sns:publish')
-      .addResource('*')
-    );
-
     this.userPool = new CfnUserPool(this, 'Users', {
       aliasAttributes: ['email'],
       autoVerifiedAttributes: ['email'],
@@ -88,11 +74,7 @@ export class Auth extends Construct {
           name: 'nickname',
           required: false
         }
-      ],
-      smsConfiguration: {
-        externalId: 'plp',
-        snsCallerArn: this.smsCallerRole.roleArn
-      }
+      ]
     });
 
     this.userPoolClient = new CfnUserPoolClient(this, 'DefaultClient', {
@@ -108,25 +90,11 @@ export class Auth extends Construct {
       userPoolId: this.userPool.userPoolId,
     });
 
-    this.userPoolMobileClient = new CfnUserPoolClient(this, 'MobileAppsClient', {
-      clientName: 'mobileapps',
-      generateSecret: true,
-      refreshTokenValidity: 365,
-      userPoolId: this.userPool.userPoolId,
-      explicitAuthFlows: [
-        'USER_PASSWORD_AUTH'
-      ]
-    });
-
     this.identityPool = new CfnIdentityPool(this, 'Identities', {
       allowUnauthenticatedIdentities: true,
       cognitoIdentityProviders: [
         {
           clientId: this.userPoolClient.userPoolClientId,
-          providerName: this.userPool.userPoolProviderName,
-        },
-        {
-          clientId: this.userPoolMobileClient.userPoolClientId,
           providerName: this.userPool.userPoolProviderName,
         }
       ]
@@ -197,17 +165,6 @@ export class Auth extends Construct {
         'iot:Publish',
         'iot:AttachPolicy'
       )
-    );
-
-    // Systems manager
-    this.adminRole.addToPolicy(new PolicyStatement()
-      .addActions(
-        'ssm:AddTagsToResource',
-        'ssm:DeleteParameter',
-        'ssm:GetParameter',
-        'ssm:PutParameter',
-      )
-      .addResource(`arn:aws:ssm:${awsRegion}:${awsAccountId}:parameter/plp/*`)
     );
 
     // Analytics

@@ -1,0 +1,3 @@
+config.sh
+config.*.sh
+!config.sample.sh

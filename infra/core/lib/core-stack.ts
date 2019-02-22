@@ -3,19 +3,10 @@ import { Dns } from '../../packages/dns';
 import { Webui } from '../../packages/webui';
 import { Output, Stack, App, StackProps, Aws } from '@aws-cdk/cdk';
 import { CfnUserPoolUser, CfnUserPoolUserToGroupAttachment } from '@aws-cdk/aws-cognito';
+import { ConfigModel } from '../../config-model';
 
 export interface SystemProps extends StackProps {
-  solutionName: string,
-  solutionDescription: string,
-  admin: {
-    username: string,
-    email: string,
-    phoneNumber: string
-  },
-  dns?: {
-    fqdn: string,
-    description: string
-  }
+  data: ConfigModel
 }
 
 export class CoreStack extends Stack {
@@ -34,17 +25,21 @@ export class CoreStack extends Stack {
 
     this.auth = new Auth(this, 'AuthConstruct');
 
-    if (props.dns) {
+    this.webui = new Webui(this, 'WebuiConstruct', {
+      deploymentName: props.data.general.solutionName,
+      deploymentDescription: props.data.general.description,
+      domainName: props.data.dns ? props.data.dns.domainName : undefined,
+      certificateArn: props.data.dns ? props.data.dns.certificateArn : undefined
+    });
+
+    if (props.data.dns && props.data.dns.hostedZoneId) {
       this.dns = new Dns(this, 'DnsConstruct', {
-        fqdn: props.dns.fqdn,
-        description: props.dns.description
+        fqdn: props.data.dns.domainName,
+        description: props.data.general.description,
+        hostedZoneId: props.data.dns.hostedZoneId,
+        target: this.webui.websiteDistribution
       });
     }
-
-    this.webui = new Webui(this, 'WebuiConstruct', {
-      deploymentName: props.solutionName,
-      deploymentDescription: props.solutionDescription
-    });
 
     this.createAdminUser(props);
     this.generateOutputs();
@@ -52,20 +47,16 @@ export class CoreStack extends Stack {
 
   createAdminUser (props: SystemProps) {
     new CfnUserPoolUser(this, `AdminUser`, {
-      username: props.admin.username,
+      username: props.data.administrator.username,
       userPoolId: this.auth.userPool.userPoolId,
       userAttributes: [
         {
           name: 'email',
-          value: props.admin.email
+          value: props.data.administrator.email
         },
         {
           name: 'name',
-          value: 'Administrator'
-        },
-        {
-          name: 'phone_number',
-          value: props.admin.phoneNumber
+          value: props.data.administrator.name
         }
       ]
     });
@@ -73,7 +64,7 @@ export class CoreStack extends Stack {
     new CfnUserPoolUserToGroupAttachment(this, `AdminAttachment`, {
       userPoolId: this.auth.userPool.userPoolId,
       groupName: this.auth.adminGroup.userPoolGroupName,
-      username: props.admin.username
+      username: props.data.administrator.username
     });
   }
 
@@ -94,6 +85,6 @@ export class CoreStack extends Stack {
     // Web UI
     new Output(this, 'WebUiBucketName', { value: this.webui.websiteBucket.bucketName, disableExport });
     new Output(this, 'WebUiDistributionId', { value: this.webui.websiteDistribution.distributionId, disableExport });
-    new Output(this, 'WebUiDistributionDomainName', { value: this.webui.websiteDistribution.distributionDomainName, disableExport });
+    new Output(this, 'WebUiDistributionDomainName', { value: this.webui.websiteDistribution.domainName, disableExport });
   }
 }

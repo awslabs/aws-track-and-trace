@@ -1,44 +1,47 @@
 import cdk = require('@aws-cdk/cdk');
 
-import * as cloudfront from '@aws-cdk/aws-cloudfront';
-import * as iam from '@aws-cdk/aws-iam';
-import * as s3 from '@aws-cdk/aws-s3';
+import { CloudFrontWebDistribution, CfnCloudFrontOriginAccessIdentity, AliasConfiguration, PriceClass } from '@aws-cdk/aws-cloudfront';
+import { PolicyStatement, CanonicalUserPrincipal } from '@aws-cdk/aws-iam';
+import { Bucket } from '@aws-cdk/aws-s3';
+import { RemovalPolicy } from '@aws-cdk/cdk';
 
 export interface WebuiProps {
   deploymentName: string;
   deploymentDescription: string;
-  aliases?: string[];
-  origins?: cloudfront.CfnDistribution.OriginProperty[];
-  cacheBehaviors?: cloudfront.CfnDistribution.CacheBehaviorProperty[];
+  domainName?: string,
+  certificateArn?: string,
+  priceClass?: PriceClass
 }
 
 export class Webui extends cdk.Construct {
   
   /** @returns the website bucket */
-  public readonly websiteBucket: s3.Bucket;
+  public readonly websiteBucket: Bucket;
 
   /** @returns the website distribution */
-  public readonly websiteDistribution: cloudfront.CfnDistribution;
+  public readonly websiteDistribution: CloudFrontWebDistribution;
 
   /** @returns the website origin access identity */
-  public readonly websiteOAI: cloudfront.CfnCloudFrontOriginAccessIdentity;
+  public readonly websiteOAI: CfnCloudFrontOriginAccessIdentity;
 
   constructor(scope: cdk.Construct, id: string, props: WebuiProps) {
     super(scope, id);
 
     // Create the OAI
-    this.websiteOAI = new cloudfront.CfnCloudFrontOriginAccessIdentity(this, 'WebsiteOAI', {
+    this.websiteOAI = new CfnCloudFrontOriginAccessIdentity(this, 'WebsiteOAI', {
       cloudFrontOriginAccessIdentityConfig: {
         comment: props.deploymentDescription
       }
     });
 
     // Create the S3 bucket
-    this.websiteBucket = new s3.Bucket(this, 'WebsiteBucket');
+    this.websiteBucket = new Bucket(this, 'WebsiteBucket', {
+      removalPolicy: RemovalPolicy.Destroy
+    });
 
     // Configure the bucket policy
-    this.websiteBucket.addToResourcePolicy(new iam.PolicyStatement()
-      .addPrincipal(new iam.CanonicalUserPrincipal(this.websiteOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId))
+    this.websiteBucket.addToResourcePolicy(new PolicyStatement()
+      .addPrincipal(new CanonicalUserPrincipal(this.websiteOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId))
       .addActions(
         's3:GetObject',
         's3:ListBucket'
@@ -47,44 +50,45 @@ export class Webui extends cdk.Construct {
       .addResource(this.websiteBucket.arnForObjects('*'))
     );
 
-    // Create the cloudfront distribution
-    const origins: cloudfront.CfnDistribution.OriginProperty[] = [];
-    origins.push({
-      id: 'default',
-      domainName: this.websiteBucket.domainName,
-      s3OriginConfig: {
-        originAccessIdentity: `origin-access-identity/cloudfront/${this.websiteOAI.cloudFrontOriginAccessIdentityId}`
-      }
-    });
-    origins.push.apply(origins, props.origins || []);
+    const aliasConfiguration: AliasConfiguration | undefined = props.domainName && props.certificateArn ? {
+      acmCertRef: props.certificateArn,
+      names: [
+        props.domainName,
+        `www.${props.domainName}`
+      ]
+    } : undefined;
 
-    this.websiteDistribution = new cloudfront.CfnDistribution(this, 'WebsiteDistribution', {
-      distributionConfig: {
-        aliases: props.aliases,
-        priceClass: 'PriceClass_100',
-        enabled: true,
-        comment: props.deploymentDescription,
-        defaultCacheBehavior: {
-          minTtl: 0,
-          defaultTtl: 5,
-          maxTtl: 5,
-          targetOriginId: 'default',
-          viewerProtocolPolicy: 'redirect-to-https',
-          forwardedValues: {
-            queryString: true
+    this.websiteDistribution = new CloudFrontWebDistribution(this, 'WebsiteDistribution', {
+      aliasConfiguration,
+      comment: props.deploymentDescription,
+      defaultRootObject: 'index.html',
+      errorConfigurations: [
+        {
+          errorCode: 404,
+          responseCode: 200,
+          responsePagePath: '/'
+        }
+      ],
+      originConfigs: [
+        {
+          behaviors: [
+            {
+              minTtlSeconds: 0,
+              defaultTtlSeconds: 5,
+              maxTtlSeconds: 86400,
+              forwardedValues: {
+                queryString: true
+              },
+              isDefaultBehavior: true
+            }
+          ],
+          s3OriginSource: {
+            originAccessIdentity: this.websiteOAI,
+            s3BucketSource: this.websiteBucket
           }
-        },
-        cacheBehaviors: props.cacheBehaviors,
-        defaultRootObject: 'index.html',
-        customErrorResponses: [
-          {
-            errorCode: 404,
-            responseCode: 200,
-            responsePagePath: '/'
-          }
-        ],
-        origins
-      }
+        }
+      ],
+      priceClass: props.priceClass || PriceClass.PriceClass100
     });
   }
 }
