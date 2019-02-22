@@ -104,41 +104,49 @@ let Config: ConfigModel = {
 }
 ```
 
-#### Starting the deployment
+#### Main infrastructure
 
-Once the infrastructure definition code is ready, we can proceed to deploy it into our AWS account. We will use the CDK deployment tools to do this.
+This process will deploy the infrastructure responsible of serving your system.
 
 * Navigate to the `infra/core` folder.
 * Run `cdk deploy`, and confirm the operation.
 
 _NOTE: Optionally, you can run `cdk synth` to output a CloudFormation template of your infrastructure definition, to spin it up using CloudFormation directly._
 
-This will kickstart the deployment process, which may take about 15-20 minutes to complete. Time for a coffee and coming back!
+This will kickstart the deployment process, which may take about 15-20 minutes to complete. Time for a coffee :).
 
-#### Verifying the deployment
+#### Post deployment tasks
 
-The `cdk deploy` task will synchronously create the resources and wait for their completion, so you will see all progress appearing in the console. To see the detailed status of the deployment, you can also follow it from the [CloudFormation console](https://eu-west-1.console.aws.amazon.com/cloudformation/home). Once the infrastructure finishes deploying, we could safely continue to the next steps.
+After deploying the project, we need to execute certain tasks to fully configure our system. These tasks are unfortunately not creatable within the CDK, so we have prepared a script that runs these tasks for you:
 
-Is your infrastructure not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBLESHOOTING.md#failed-during-infrastructure-spin-up) section.
+* **Request a Cognito Login domain:** You will select a unique domain name that will be used for login - your login domain will be of the form `<your-domain-name>.auth.<region>.amazoncognito.com`. You can read more information about Cognito custom domains [here](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-ux.html).
+* **Configure app client settings:** Prepare your Cognito User Pool to authenticate your users through the client. [More information](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-settings.html).
+* **Configure token-based role mappings:** Your Identity Pool supports giving dynamically roles to your users based on your token claims. 
 
-_NOTE: Remember to execute the [After deployment manual steps](./MANUAL_CONFIG.md#after-deployment)_ to fully configure the infrastructure once it finishes deploying.
+From the project's root folder, run `bash scripts/post-deployment-tasks <your-domain-name>`.
 
-### Delivering the UI
+Once you have executed this task, you need to open the file `scripts/config.sample.sh` and set the following values - most of them present at `infra/config.ts`. Then save the file as `scripts/config.sh`:
+
+```sh
+export STACK_NAME="AWSTrackAndTrace" # Map this from infra/config.ts > general.solutionName
+export AWS_REGION="eu-west-1" # Change this if you deploy in a region different than Ireland
+export COGNITO_CUSTOM_DOMAIN="<your-domain-name>"
+```
+
+These values will be used from the delivery scripts to configure the system prior delivery.
+
+### Delivering the solution
 
 Once your infrastructure is ready, we need to configure and deliver the UI code into it so we could access it and use it.
 
-TODO Maps API Keys and other stuff.
+#### Get a Google Maps API Key
 
-* `fqdn`: [Optional] If you plan to use your own domain for authentication, this value needs to be populated with the Cognito's given distribution URL for your login UI.
-* `domain`: If you configured a Cognito hosted domain input the prefix of such domain here - e.g. `myfleetauth`. If you're using your own domain, input the fully qualified domain name of your desired auth domain - e.g. `auth.myfleet.example.com`. _NOTE: If you choose this latter approach, you will have had to reference either a Hosted Zone or a custom domain to create the zone for in the previous infrastructure processes._
+Follow the instructions at the [Google Developers](https://developers.google.com/maps/documentation/javascript/get-api-key) page to generate an API Key for Google Maps (for Javascript). Once you have it, configure your `scripts/config.sh`:
 
-Once you've reflected these values, you will need to re-deploy the infrastructure:
-
-* Navigate to `infra/core` folder.
-* Run `npm run build`.
-* Run `cdk deploy`.
-
-Once the infrastructure finishes re-deploying - it should be much quicker than the first time - you'll be ready to continue.
+```sh
+...
+export GOOGLE_MAPS_API_KEY="<your-maps-api-key>"
+```
 
 #### Preparing and deploying the UI
 
@@ -154,9 +162,11 @@ When your deployment finishes successfully you could start testing it by accessi
 
 Type the URL you've gathered previously on a browser. You will be redirected to your recently deployed system, more specifically to the UI's landing page. 
 
-TODO Image
+![Landing page](/static/landing-page)
 
 Click on the _Access_ button to start the authentication process. You should be redirected to the Cognito login page. In there you can use the username you've defined in the `infra/config.ts` file, along with a password that you should've received over email. Use those credentials and log in. You should be asked to change your password, and use your new credentials to finalize the login process. Once you've done that, you should be redirected back to the private section of the solution's UI.
+
+TODO Dashboard Screenshot
 
 ### Fleet map
 
