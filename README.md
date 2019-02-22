@@ -166,7 +166,7 @@ Type the URL you've gathered previously on a browser. You will be redirected to 
 
 Click on the _Access_ button to start the authentication process. You should be redirected to the Cognito login page. In there you can use the username you've defined in the `infra/config.ts` file, along with a password that you should've received over email. Use those credentials and log in. You should be asked to change your password, and use your new credentials to finalize the login process. Once you've done that, you should be redirected back to the private section of the solution's UI.
 
-TODO Dashboard Screenshot
+![Dashboard Overview](/static/dashboard-overview.png)
 
 ### Fleet map
 
