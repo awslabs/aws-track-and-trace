@@ -30,7 +30,7 @@ export class Dns extends Construct {
     });
 
     this.websiteMainRecordSet = new AliasRecord(this, 'MainRecord', {
-      recordName: props.fqdn,
+      recordName: `${props.fqdn}.`,
       target: props.target,
       zone: this.hostedZone
     });

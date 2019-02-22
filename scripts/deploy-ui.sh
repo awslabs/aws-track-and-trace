@@ -1,7 +1,9 @@
 #!/bin/bash
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 project_dir="${script_dir}/.."
-website_bucket="connectedvehiclesdevkit-webuiwebsitebucketdd8efb9-1h9jukttzleyw"
+
+source ${script_dir}/config.sh
+website_bucket=${WEB_UI_BUCKET_NAME}
 
 cd $project_dir/dashboard
 npm i

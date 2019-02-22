@@ -163,7 +163,8 @@ export class Auth extends Construct {
         'iot:Subscribe',
         'iot:Receive',
         'iot:Publish',
-        'iot:AttachPolicy'
+        'iot:AttachPolicy',
+        'iot:GetThingShadow',
       )
     );
 
