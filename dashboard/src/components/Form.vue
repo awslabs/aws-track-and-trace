@@ -24,6 +24,7 @@
 
           <!-- Select -->
           <select :ref="field.id" v-if="'select' === field.type" class="form-control form-control-alt" id="new-vv-type" name="new-vv-type" :placeholder="field.placeholder" v-model="metadata.model[field.id]">
+            <option v-if="field.placeholder" value="">{{ field.placeholder }}</option>
             <option v-for="(option, index) in field.options" :key="index" :value="option.value">{{ option.label }}</option>
           </select>
         </div>
@@ -72,14 +73,22 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
 .meta-form {
+  width: 100%;
+
   .form-title {
     font-size: 1.2em;
-    text-transform: uppercase;
     text-align: left;
   }
 
   .form-fields {
     .form-field {
+      text-align: left;
+      
+      label {
+        font-weight: bold;
+        text-indent: 3px;
+      }
+
       .field-hint {
         text-align: left;
         padding-left: 0.5em;

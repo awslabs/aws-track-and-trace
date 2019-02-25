@@ -33,6 +33,19 @@
     <div class="map-overlay-menu">
       <fleet-map-menu :assets="assets"></fleet-map-menu>
     </div>
+    <div class="map-overlay-panel">
+      <div class="header">
+        <div class="title">Lorem ipsum dolor sit</div>
+        <div class="close">
+          <button class="btn btn-link">
+            <i class="fa fa-times"></i>
+          </button>
+        </div>
+      </div>
+      <div class="content" v-if="assets.length">
+        <asset-configuration :asset="assets[0]"></asset-configuration>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -41,15 +54,18 @@ import { gmapApi } from 'vue2-google-maps';
 import nameGenerator from 'project-name-generator';
 import randomColor from 'randomcolor';
 
+import AssetConfiguration from '@/components/AssetConfiguration';
 import FleetMapMenu from '@/components/FleetMapMenu';
 
 import ConfigurationService from '@/services/ConfigurationService';
+import DdbService from '@/services/DdbService';
 import IotService from '@/services/IotService';
 
 export default {
   name: 'ComponentCamelName',
   props: ['mapCenter', 'mapClick', 'mapItems', 'mapZoom', 'width', 'height', 'enableOverlayMenu'],
   components: {
+    AssetConfiguration,
     FleetMapMenu
   },
   data () {
@@ -73,36 +89,30 @@ export default {
         width: `${ this.width || 1920 }px`,
         height: `${ this.height || 1080 }px`
       },
-      mapMarkers: [],
       pois: [],
-      assets: this.mapItems || [],
-      warnings: []
+      assets: this.mapItems || []
     }
   },
   computed: {
     google: gmapApi,
-    
-    numAlerts () {
-      const ret = this.assets.filter(asset => {
-        const mapIcon = this.getMapIcon(asset);
-        if (mapIcon.warnings && mapIcon.warnings.length) {
-          return true
-        }
-        return false;
-      });
-      return ret.length;
-    }
   },
-  created () {
+  async created () {
     this.configurationService = ConfigurationService.getInstance();
 
     this.iotService = IotService.getInstance();
+    this.ddbService = DdbService.getInstance()
+
+    this.inventoryTableName = this.configurationService.get('INVENTORY_ASSETS_TABLE_NAME');
+
     const assetsClient = this.iotService.connect();
-    assetsClient.on('connect', () => {
+    assetsClient.on('connect', async () => {
       console.log('INFO: Connected to AWS Iot');
       console.log('INFO: Subscribing to topics');
       // assetsClient.subscribe('$aws/things/+/shadow/get/accepted');
       // assetsClient.subscribe('$aws/things/+/shadow/update/accepted');
+
+      console.log('INFO: Fetching assets');
+      await this.fetchAssets();
     });
 
     assetsClient.on('message', (topic, payload) => {
@@ -117,7 +127,7 @@ export default {
   },
   mounted () {
     if (!this.mapItems) {
-      this.fetchData();
+      this.fetchAssets();
     }
     this.configureMap();
   },
@@ -188,88 +198,52 @@ export default {
       
     },
 
-    async fetchData () {
+    createAssetDefinition (inventoryDef, stateDef) {
+      const location = eval(`stateDef.${inventoryDef.LocationField}`);
+      // TODO Manage exceptions here
+
+      const ret = {
+        $inventory: inventoryDef,
+        $state: stateDef,
+
+        location
+      };
+
+      return ret
+    },
+
+    async fetchAssets () {
       console.log('INFO: Fetching assets');
-      console.warn('WARN: This is not implemented');
+      const inventoryAssets = await this.ddbService.scan(this.inventoryTableName);
+      const assets = [];
+      for (let i = 0; i < inventoryAssets.length; i++) {
+        const inventoryAsset = inventoryAssets[i];
+        const stateAsset = await this.iotService.getAssetStatus(inventoryAsset.AssetId);
+
+        const parsedAsset = this.createAssetDefinition(inventoryAsset, stateAsset);
+        assets.push(parsedAsset);
+      }
+      
+      this.assets = assets;
     },
 
     getMapIcon (asset) {
-      const warnings = [];
-      let tyresOk = true;
-      const currentDate = (new Date().getTime() / 1000) | 0;
-
-      if (asset.systems && asset.systems.tyres) {
-        const lastUpdateTime = asset.systems.engine ? asset.systems.engine.lastSleepCycle : asset.location.lastUpdated;
-        
-        if (lastUpdateTime < currentDate - 10*86400) {
-          const scale = this.mapActions[1].status === 'enabled' ? 10 : 0;
-
-          return {
-            path: this.google.maps.SymbolPath.CIRCLE,
-            scale,
-            fillColor: 'red',
-            fillOpacity: 1,
-            strokeWeight: 0,
-            strokeColor: 'red'
-          }
-        } else if (lastUpdateTime < currentDate - 5*86400) {
-          const scale = this.mapActions[0].status === 'enabled' ? 8 : 0;
-
-          return {
-            path: this.google.maps.SymbolPath.CIRCLE,
-            scale,
-            fillColor: 'orange',
-            fillOpacity: 1,
-            strokeWeight: 0,
-            strokeColor: 'orange'
-          }
-        } else {
-          for (let tyreName in asset.systems.tyres) {
-            const tyre = asset.systems.tyres[tyreName];
-            if (tyre > 36 || tyre < 32) {
-              warnings.push(`tyres-critical-values-${tyreName}`);
-              console.log(`Vehicle ${asset.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
-            } 
-          }
-        }
-      } else if (asset.tyres) {
-        asset.tyres.forEach(tyre => {
-          if (tyre > 36 || tyre < 32) {
-            warnings.push(`tyres-critical-values-${tyreName}`);
-            console.log(`Vehicle ${asset.vin} has tyre alert on tyre ${tyreName}. Value: ${tyre}`);
-          }
-        });
-      }
-
-      const scale = warnings && warnings.length ? 8 : 6;
-      const fillColor = warnings && warnings.length ? 'yellow' : '#444';
-      const fillOpacity = warnings && warnings.length ? .9 : 1;
-      const strokeWeight = 2;
-      const strokeColor = asset.VehicleType === 'amazon' ? '#f29837' : '#444';
       return {
         path: this.google.maps.SymbolPath.CIRCLE,
-        scale,
-        fillColor,
-        fillOpacity,
-        strokeWeight,
-        strokeColor,
-        warnings
-      };
+        scale: 8,
+        fillColor: '#444',
+        fillOpacity: 1,
+        strokeWeight: 0,
+        strokeColor: '#444'
+      }
     },
 
     parseLocation (asset) {
-      const location = asset.location;
-      if (location.latitude) {
-        return {
-          lat: location.latitude,
-          lng: location.longitude
-        }
-      } else if (location instanceof Array) {
-        return {
-          lat: location[0],
-          lng: location[1]
-        }
-      }
+      // TODO Implement
+      return {
+        lat: asset.location.latitude,
+        lng: asset.location.longitude
+      };
     },
 
     processMessage (topic, payload) {
@@ -289,66 +263,6 @@ export default {
         }
         // this.renderMarkers();
       }
-    },
-
-    renderMarkers () {
-      this.mapMarkers.forEach(marker => {
-        marker.remove();
-      });
-
-      this.mapMarkers = this.assets.map(marker => {
-        // Parse AMZN asset location
-        // TODO Remove this
-        // const marker = markerRef.hasOwnProperty('battery') ? {
-        //   ...markerRef,
-          
-        // } : markerRef;
-
-        let tyresOk = true;
-        for (let tyreName in marker.systems.tyres) {
-          const tyre = marker.systems.tyres[tyreName];
-          if (tyre > 38 || tyre < 29) {
-            if (!marker.warnings) marker.warnings = [];
-            marker.warnings.push('tyres-critical-values');
-          } else if (tyre < 32 || tyre > 35) {
-            if (!marker.warnings) marker.warnings = [];
-            marker.warnings.push('tyres-values-beyond-limits');
-          }
-        }
-
-        const el = document.createElement('div')
-        el.setAttribute('class', `marker ${marker.VehicleType}`);
-
-        const icon = document.createElement('div');
-        icon.setAttribute('class', 'icon');
-        icon.setAttribute('style', `transform: rotate(${90+marker.location.bearing}deg)`);
-        icon.addEventListener('click', event => {
-          this.clickVehicle(marker);
-        });
-        el.appendChild(icon);
-
-        const alerts = document.createElement('div');
-        alerts.setAttribute('class', `alerts ${marker.warnings ? 'errors' : marker.warnings ? 'warnings' : ''}`);
-        alerts.setAttribute('style', `transform: rotate(${-1*(90+marker.location.bearing)}deg)`);
-        icon.appendChild(alerts);
-
-        const mapMarker = new mapbox.Marker(el);
-        mapMarker.setLngLat([marker.location.longitude, marker.location.latitude]);
-        mapMarker.addTo(this.map);
-
-        return mapMarker;
-      });
-
-      this.resizeMarkers();
-    },
-
-    resizeMarkers () {
-      const zoom = this.map.getZoom();
-      this.mapMarkers.forEach(marker => {
-        const element = marker.getElement();
-        element.style.width = `${5 * zoom}px`;
-        element.style.height = `${2.47 * zoom}px`;
-      });
     }
   },
   watch: {
@@ -418,6 +332,49 @@ export default {
           margin-top: 0px;
         }
       }
+    }
+  }
+
+  .map-overlay-panel {
+    position: fixed;
+    top: 100px;
+    right: 0px;
+    left: 320px;
+    bottom: 10px;
+    background: rgba(255, 255, 255, .7);
+
+    border-top-left-radius: 1em;
+    border-bottom-left-radius: 1em;
+
+    .header {
+      position: relative;
+
+      .title {
+        text-align: left;
+        padding: 1em;
+
+        font-size: 1.3em;
+        font-weight: 600;
+      }
+
+      .close {
+        position: absolute;
+        top: .5em;
+        right: .5em;
+        
+        button {
+          color: #222;
+        }
+      }
+    }
+
+    .content {
+      position: absolute;
+      top: 4em;
+      left: 1em;
+      right: 1em;
+      bottom: 1em;
+      overflow: auto;
     }
   }
 }

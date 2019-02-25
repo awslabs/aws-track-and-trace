@@ -1,14 +1,18 @@
 <template>
   <div id="app">
+    <framework></framework>
     <router-view v-on:state="statusChange" />
   </div>
 </template>
 
 <script>
+import Framework from '@/components/Framework';
+
 import AuthService from '@/services/AuthService'
 
 export default {
   name: 'App',
+  components: { Framework },
   created () {
     this.authService = AuthService.getInstance()
     this.verifyRoute()

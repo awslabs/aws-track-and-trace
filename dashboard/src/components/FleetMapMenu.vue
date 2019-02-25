@@ -1,13 +1,13 @@
 <template>
   <div class="fleet-map-menu">
     <div class="sections">
-      <button class="home btn btn-link" title="Home" :class="{ active: config.menuSection === 'home' }" @click="config.menuSection = 'home'">
+      <button class="home btn btn-link" title="Home" :class="{ active: config.menuSection === 'home' }" @click="setSection('home')">
         <i class="fas fa-home"></i>
       </button>
-      <button class="stats btn btn-link" title="Statistics" :class="{ active: config.menuSection === 'stats' }" @click="config.menuSection = 'stats'">
+      <button class="stats btn btn-link" title="Statistics" :class="{ active: config.menuSection === 'stats' }" @click="setSection('stats')">
         <i class="fas fa-chart-line"></i>
       </button>
-      <button class="config btn btn-link" title="Settings" :class="{ active: config.menuSection === 'config' }" @click="config.menuSection = 'config'">
+      <button class="config btn btn-link" title="Settings" :class="{ active: config.menuSection === 'config' }" @click="setSection('config')">
         <i class="fas fa-cog"></i>
       </button>
     </div>
@@ -47,6 +47,9 @@
 <script>
 import MetaForm from '@/components/Form';
 
+import ConfigurationService from '@/services/ConfigurationService';
+import DdbService from '@/services/DdbService';
+import FrameworkService from '@/services/FrameworkService';
 import IotService from '@/services/IotService';
 
 export default {
@@ -69,6 +72,7 @@ export default {
             {
               id: 'thingName',
               type: 'text',
+              label: 'Thing name',
               placeholder: 'MyAsset1',
               hint: 'The thing name in AWS IoT',
               // action: {
@@ -82,6 +86,7 @@ export default {
             {
               id: 'locationField',
               type: 'text',
+              label: 'Location variable',
               placeholder: 'systems.gps.location',
               hint: 'Path to the location variable'
             }
@@ -132,7 +137,12 @@ export default {
     }
   },
   created () {
+    this.config = ConfigurationService.getInstance();
+    this.ddb = DdbService.getInstance();
+    this.fwk = FrameworkService.getInstance();
     this.iot = IotService.getInstance();
+
+    this.inventoryTableName = this.config.get('INVENTORY_ASSETS_TABLE_NAME');
   },
   methods: {
     async onboardDevice (device) {
@@ -145,7 +155,26 @@ export default {
         location: {
           latitude, longitude
         }
-      })
+      });
+
+      const AssetId = device.thingName;
+      const deviceData = {
+        AssetId,
+        LocationField: device.locationField
+      };
+
+      try {
+        const result = await this.ddb.put(this.inventoryTableName, { AssetId }, deviceData);
+        this.fwk.addAlert('success', `Successfully registered device ${AssetId}`);
+      } catch (e) {
+        this.fwk.addAlert('danger', `Failed to register device ${AssetId}`);
+      }
+
+    },
+
+    setSection (section) {
+      this.config.menuSection = section;
+      this.$forceUpdate();
     }
   }
 }
