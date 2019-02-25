@@ -10,6 +10,7 @@
         <div class="actions">
           <button class="btn btn-outline-success btn-sm" @click="startAddingSensor()">
             <i class="fas fa-plus"></i>
+            Add sensor
           </button>
         </div>
         <div class="sensors-content" v-if="config.sensorsViewStatus !== 'add'">
@@ -40,16 +41,51 @@
       </div>
       <div class="styling">
         <h3>Styling</h3>
-        <div class="text-muted">
-          Enter your styling rules here. You can use <code>this</code> (Vue component), <code>this.google</code> (GMaps instance) and all sensors defined.
-        </div>
-        <textarea rows="10" v-model="assetStyle">
-        </textarea>
-        <div class="actions text-right">
-          <button class="btn btn-sm btn-outline-success">
-            <i class="fas fa-save"></i>
-            Save
+        <div class="actions">
+          <button class="btn btn-sm btn-outline-success" @click="startAddingStyleCondition()" v-if="config.stylingViewStatus !== 'edit'">
+            <i class="fas fa-code-branch"></i>
+            Add condition
           </button>
+          <button class="btn btn-sm btn-outline-dark" @click="editMainStyle()" v-if="config.stylingViewStatus !== 'edit'">
+            <i class="fas fa-pencil-alt"></i>
+            Edit main style
+          </button>
+        </div>
+        <div class="add-condition" v-if="config.stylingViewStatus === 'condition-add'">
+          <meta-form :metadata="forms.styleConditionOnboarding"></meta-form>
+        </div>
+        <div class="main-styling" v-else-if="config.stylingViewStatus !== 'conditions'">
+          <textarea rows="8" v-model="assetStyle"></textarea>
+          <div class="actions text-right">
+            <button class="btn btn-sm btn-outline-success" @click="saveAssetStyle()">
+              <i class="fas fa-save"></i>
+              Save
+            </button>
+          </div>
+        </div>
+        <div class="conditions" v-else>
+          <div class="no-conditions" v-if="!styleConditions.length">
+            You have setup no conditions
+          </div>
+          <div class="condition" v-for="(condition, index) in styleConditions" :key="index">
+            <div class="info">
+              <span class="matches">
+                <i class="text-danger fas fa-times"></i>
+              </span>
+              <span class="expression">{{ condition.ConditionExpression }}</span>
+            </div>
+            <div class="actions">
+              <button class="btn btn-outline-primary btn-sm promote" @click="sortStyleCondition(condition, -1)">
+                <i class="fas fa-chevron-up"></i>
+              </button>
+              <button class="btn btn-outline-primary btn-sm demote" @click="sortStyleCondition(condition, 1)">
+                <i class="fas fa-chevron-down"></i>
+              </button>
+              <button class="btn btn-outline-danger btn-sm delete" @click="deleteStyleCondition(condition)">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -83,6 +119,7 @@
 </template>
 
 <script>
+import uuid from 'uuid/v4';
 import { gmapApi } from 'vue2-google-maps';
 
 import MetaForm from '@/components/Form';
@@ -100,7 +137,8 @@ export default {
   data () {
     return {
       config: {
-        sensorsViewStatus: 'idle'
+        sensorsViewStatus: 'idle',
+        stylingViewStatus: 'edit'
       },
       assetStyle: JSON.stringify({
         path: 'CIRCLE',
@@ -111,6 +149,7 @@ export default {
         strokeColor: '#444'
       }, null, 2),
       sensors: [],
+      styleConditions: [],
       mapOptions: {
         zoomControl: false,
         mapTypeControl: false,
@@ -206,6 +245,39 @@ export default {
               this.onboardSensor(data);
             }
           }]
+        },
+        styleConditionOnboarding: {
+          title: 'New condition',
+          model: {
+            ConditionExpression: '',
+            StyleOverrides: '',
+            Priority: 0
+          },
+          fields: [
+            {
+              id: 'ConditionExpression',
+              type: 'text',
+              label: 'Condition expression',
+              placeholder: 'CoolerTemperature.indexOf(\'something\') === 2',
+              hint: 'Condition matching expression. Use the sensor names.'
+            },
+            {
+              id: 'StyleOverrides',
+              type: 'textarea',
+              label: 'Style overrides',
+              placeholder: JSON.stringify({ fillColor: 'red', fillOpacity: 1 }, null, 2),
+              hint: 'Style overrides. Empty means no change.',
+              rows: 8
+            }
+          ],
+          actions: [{
+            label: 'Save condition',
+            icon: 'fas fa-save',
+            style: 'btn-success',
+            handler: async (data) => {
+              this.onboardStyleCondition(data);
+            }
+          }]
         }
       }
     }
@@ -229,9 +301,17 @@ export default {
     this.ddb = DdbService.getInstance();
     this.fwk = FrameworkService.getInstance();
 
-    this.sensorsTableName = this.config.get('INVENTORY_SENSORS_TABLE_NAME');
+    this.assetsTableName     = this.config.get('INVENTORY_ASSETS_TABLE_NAME');
+    this.conditionsTableName = this.config.get('INVENTORY_CONDITIONS_TABLE_NAME');
+    this.sensorsTableName    = this.config.get('INVENTORY_SENSORS_TABLE_NAME');
   },
   mounted () {
+    if (this.asset.$inventory.MarkerStyle) {
+      const parsed = JSON.parse(this.asset.$inventory.MarkerStyle);
+      this.assetStyle = JSON.stringify(parsed, null, 2);
+      this.config.stylingViewStatus = 'conditions';
+    }
+    this.fetchConditions();
     this.fetchSensors();
   },
   methods: {
@@ -246,6 +326,20 @@ export default {
       } catch (e) {
         this.fwk.addAlert('danger', `Failed to delete sensor ${SensorId}`);
       }
+    },
+
+    editMainStyle () {
+      this.config.stylingViewStatus = 'edit';
+      this.$forceUpdate();
+    },
+    
+    async fetchConditions () {
+      console.log('INFO: Start fetching conditions');
+      const keys = { '#asset': 'AssetId' };
+      const values = { ':assetId': this.asset.$inventory.AssetId };
+      const conditions = await this.ddb.query(this.conditionsTableName, '#asset = :assetId', keys, values);
+      this.styleConditions = conditions
+      this.$forceUpdate()
     },
     
     async fetchSensors () {
@@ -305,8 +399,55 @@ export default {
 
     },
 
+    async onboardStyleCondition (condition) {
+      const { AssetId } = this.asset.$inventory;
+      
+      const ConditionId = uuid();
+
+      const item = {
+        ...condition,
+        AssetId,
+        ConditionId
+      }
+
+      try {
+        const ret = await this.ddb.put(this.conditionsTableName, { AssetId, ConditionId }, item);
+        this.fwk.addAlert('success', 'Successfully added condition');
+        this.config.stylingViewStatus = 'conditions';
+        await this.fetchConditions();
+      } catch (e) {
+        this.fwk.addAlert('danger', 'Failed to add condition to marker style')
+      }
+    },
+
+    async saveAssetStyle () {
+      const style = this.assetStyle;
+      const parsedStyle = JSON.parse(style);
+      const minified = JSON.stringify(parsedStyle);
+
+      const { AssetId } = this.asset.$inventory;
+
+      const UpdateExpression = 'set #style = :style';
+      const names = { '#style': 'MarkerStyle' };
+      const values = { ':style': minified };
+
+      try {
+        const ret = await this.ddb.update(this.assetsTableName, { AssetId }, UpdateExpression, names, values);
+        this.fwk.addAlert('success', 'Successsfully stored asset style');
+        this.config.stylingViewStatus = 'conditions';
+        this.$forceUpdate();
+      } catch (e) {
+        this.fwk.addAlert('danger', 'Failed to store asset style');
+      }
+    },
+
     startAddingSensor () {
       this.config.sensorsViewStatus = 'add';
+      this.$forceUpdate();
+    },
+
+    startAddingStyleCondition () {
+      this.config.stylingViewStatus = 'condition-add';
       this.$forceUpdate();
     }
   },
@@ -316,10 +457,6 @@ export default {
         this.fetchSensors();
         this.forms.assetBasicInformation.model = val.$inventory;
       }
-    },
-
-    assetStyle (val) {
-      this.$$forceUpdate();
     }
   }
 }
@@ -376,6 +513,10 @@ export default {
 
       .actions {
         display: inline-block;
+
+        button {
+          font-size: .8em;
+        }
       }
 
       .sensors-content {
@@ -450,6 +591,18 @@ export default {
     .styling {
       width: 55%;
 
+      h3 {
+        display: inline-block;
+      }
+
+      .actions {
+        display: inline-block;
+
+        button {
+          font-size: .8em;
+        }
+      }
+
       textarea {
         margin: .5em 0;
         padding: .5em;
@@ -458,6 +611,84 @@ export default {
         background: rgba(0, 0, 0, .6);
         border-radius: .5em;
         color: white;
+      }
+
+      .conditions {
+        display: flex;
+        align-items: flex-start;
+        justify-content: stretch;
+        flex-wrap: wrap;
+        width: 100%;
+        padding-top: 1em;
+
+        .no-conditions {
+          align-self: center;
+          justify-content: center;
+          text-align: center;
+          width: 100%;
+        }
+
+        .condition {
+          width: 100%;
+          padding: .5em;
+          display: flex;
+          justify-content: flex-start;
+          align-items: center;
+
+          &:nth-child(odd) {
+            background: rgba(255, 255, 255, .8);
+          }
+
+          &:nth-child(even) {
+            background: rgba(255, 255, 255, .3);
+          }
+
+          &:first-child {
+            .actions .promote {
+              display: none;
+            }
+          }
+
+          &:last-child {
+            .actions .demote {
+              display: none;
+            }
+          }
+
+          .info {
+            flex: 1;
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+
+            .expression {
+              text-indent: .5em;
+              font-size: 1.2em;
+              font-weight: 200;
+              margin-right: .5em;
+            }
+
+            .matches {
+              margin-left: .5em;
+            }
+          }
+
+          .actions {
+            opacity: 0;
+            transition: opacity .3s ease-in-out;
+            justify-self: flex-end;
+
+            button {
+              font-size: .8em;
+            }
+          }
+
+          &:hover {
+            .actions {
+              opacity: 1;
+            }
+          }
+        }
       }
     }
   }

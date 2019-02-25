@@ -42,8 +42,8 @@ export default class DdbService {
     return ret.Items;
   }
 
-  async update (TableName, Key, Item) {
-    const ret = await this.ddb.update({ TableName, Key, Item }).promise()
+  async update (TableName, Key, UpdateExpression, ExpressionAttributeNames, ExpressionAttributeValues) {
+    const ret = await this.ddb.update({ TableName, Key, UpdateExpression, ExpressionAttributeNames, ExpressionAttributeValues }).promise()
     return ret.Item;
   }
 
