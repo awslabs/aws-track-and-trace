@@ -4,9 +4,23 @@ Sample system to track and trace vehicles and assets in the cloud. This project 
 
 * [Getting started](#getting-started)
 * * [Prerequisites](#prerequisites)
-* * [Spinning up the infrastructure](#spinning-up-the-infrastructure)
-* * [Deploying the UI](#deploying-the-ui)
-* [Using the system](#using-the-system)
+* * [Deploying the infrastructure](#deploying-the-infrastructure)
+* * * [Configuring the project](#configuring-the-project)
+* * * [Preparing the modules](#preparing-the-modules)
+* * * [Deploying the DNS Information](#deploying-the-dns-information)
+* * * [Main infrastructure](#main-infrastructure)
+* * * [Post deployment tasks](#post-deployment-tasks)
+* * [Delivering the solution](#delivering-the-solution)
+* * * [Get a Google Maps API Key](#get-a-google-maps-api-key)
+* * * [Preparing and deploying the UI](#preparing-and-deploying-the-ui)
+* [ First use of the system](#first-use-of-the-system)
+* * [Fleet map](#fleet-map)
+* * [Adding assets](#adding-assets)
+* [ Customizing assets](#customizing-assets)
+* * [Configuring asset style](#configuring-asset-style)
+* * [Using asset sensors](#using-asset-sensors)
+* [ License Summary](#license-summary)
+* * [Graphical content](#graphical-content)
 
 ## Getting started
 
@@ -16,10 +30,10 @@ This project uses the [AWS Cloud Development Kit](https://github.com/awslabs/aws
 
 You will need to have the following software installed in your workstation to successfully deploy this project:
 
-* **AWS CLI:** You will need to install the [AWS CLI](https://aws.amazon.com/cli/) and configure your access keys to interact with your AWS account. _NOTE: You will need Python and pip installed to do this._
-* **AWS CDK:** Follow the instructions [here](https://github.com/awslabs/aws-cdk) to install the Cloud Development Kit. _NOTE: You will need to have `Node.js` and `npm` installed to do this._
-* **jq:** You need the [`jq`](https://stedolan.github.io/jq/) cli to configure your system.
-* **Clone this repository:** Get the contents of the project in your machine.
+* **AWS CLI:** [You will need to install the ](##You will need to install the )[AWS CLI](https://aws.amazon.com/cli/) and configure your access keys to interact with your AWS account. _NOTE: You will need Python and pip installed to do this._
+* **AWS CDK:** [Follow the instructions ](##Follow the instructions )[here](https://github.com/awslabs/aws-cdk) to install the Cloud Development Kit. _NOTE: You will need to have `Node.js` and `npm` installed to do this._
+* **jq:** [You need the ](##You need the )[`jq`](https://stedolan.github.io/jq/) cli to configure your system.
+* **Clone this repository:** [Get the contents of the project in your machine](##Get the contents of the project in your machine).
 
 ### Deploying the infrastructure
 
@@ -49,17 +63,17 @@ let Config: ConfigModel = {
 }
 ```
 
-* **General:** Basic information about the deployment.
-* * **Name:** Human friendly name of your solution.
-* * **Description:** Description of your solution.
-* **Administrator:** Information about the administrator user
-* * **Name:** Full name of the administrator user.
-* * **Email:** Email address of the administrator user.
-* * **Username:** User name for the admin user.
-* * **Phone:** Phone number of the admin user.
-* **Dns:** _[OPTIONAL]_ Information about the DNS records.
-* * **Fqdn:** Domain name of the solution. If you specify a Dns configuration, you **must** provide this value.
-* * **Hosted_zone:** _[OPTIONAL]_ ID of the existing hosted zone.
+* **General:** [Basic information about the deployment](##Basic information about the deployment).
+* * **Name:** [Human friendly name of your solution](##Human friendly name of your solution).
+* * **Description:** [Description of your solution](##Description of your solution).
+* **Administrator:** [Information about the administrator user](##Information about the administrator user)
+* * **Name:** [Full name of the administrator user](##Full name of the administrator user).
+* * **Email:** [Email address of the administrator user](##Email address of the administrator user).
+* * **Username:** [User name for the admin user](##User name for the admin user).
+* * **Phone:** [Phone number of the admin user](##Phone number of the admin user).
+* **Dns:** [_](##_)[OPTIONAL]_ Information about the DNS records.
+* * **Fqdn:** [Domain name of the solution](##Domain name of the solution). If you specify a Dns configuration, you **must** [provide this value](##provide this value).
+* * **Hosted_zone:** [_](##_)[OPTIONAL]_ ID of the existing hosted zone.
 
 Configure the values to your best convenience and store the result at `infra/config.ts`. This file will configure your deployment once we move forward.
 
@@ -77,8 +91,8 @@ The first deployment we will deploy is our DNS information, which consists on an
 
 _NOTE: As part of the certificate creation the system will attempt to send an email to several addresses that you need to receive in order to confirm the creation. To understand more about this process, please follow [this guide](https://docs.aws.amazon.com/acm/latest/userguide/gs-acm-validate-email.html). The system won't finish deploying until the certificate is verified and issued._
 
-* Navigate to the `infra/dns` folder.
-* Run `cdk deploy`, and confirm the operation.
+* [Navigate to the ](##Navigate to the )`infra/dns` folder.
+* [Run ](##Run )`cdk deploy`, and confirm the operation.
 
 Once the CDK finishes deploying, the tool will output some values we will need to configure. You will see something like this:
 
@@ -108,8 +122,8 @@ let Config: ConfigModel = {
 
 This process will deploy the infrastructure responsible of serving your system.
 
-* Navigate to the `infra/core` folder.
-* Run `cdk deploy`, and confirm the operation.
+* [Navigate to the ](##Navigate to the )`infra/core` folder.
+* [Run ](##Run )`cdk deploy`, and confirm the operation.
 
 _NOTE: Optionally, you can run `cdk synth` to output a CloudFormation template of your infrastructure definition, to spin it up using CloudFormation directly._
 
@@ -126,9 +140,9 @@ The last configuration process before being ready to deliver is to store the inf
 
 After deploying the project, we need to execute certain tasks to fully configure our system. These tasks are unfortunately not creatable within the CDK, so we have prepared a script that runs these tasks for you:
 
-* **Request a Cognito Login domain:** You will select a unique domain name that will be used for login - your login domain will be of the form `<your-domain-name>.auth.<region>.amazoncognito.com`. You can read more information about Cognito custom domains [here](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-ux.html).
-* **Configure app client settings:** Prepare your Cognito User Pool to authenticate your users through the client. [More information](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-settings.html).
-* **Configure token-based role mappings:** Your Identity Pool supports giving dynamically roles to your users based on your token claims. 
+* **Request a Cognito Login domain:** [You will select a unique domain name that will be used for login ](##You will select a unique domain name that will be used for login )- your login domain will be of the form `<your-domain-name>.auth.<region>.amazoncognito.com`. You can read more information about Cognito custom domains [here](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-ux.html).
+* **Configure app client settings:** [Prepare your Cognito User Pool to authenticate your users through the client](##Prepare your Cognito User Pool to authenticate your users through the client). [More information](https://docs.aws.amazon.com/cognito/latest/developerguide/cognito-user-pools-app-settings.html).
+* **Configure token-based role mappings:** [Your Identity Pool supports giving dynamically roles to your users based on your token claims](##Your Identity Pool supports giving dynamically roles to your users based on your token claims). 
 
 From the project's root folder, run `npm configure:post-deployment <your-domain-name>`.
 
@@ -186,7 +200,7 @@ The system has a tool for adding these _Things_, that you can find on the config
 
 ![Add asset menu](/static/add-asset-menu.png)
 
-Input the **Thing name** in the first field, and the `location` variable in the second. The location variable should be the path to where the actual asset latitude and longitude are stored, starting from the reported state object - stored in the device's shadow. The location object should have a similar appearance than this: 
+Input the **Thing name** [in the first field](##in the first field), and the `location` variable in the second. The location variable should be the path to where the actual asset latitude and longitude are stored, starting from the reported state object - stored in the device's shadow. The location object should have a similar appearance than this: 
 
 ```json
 {
@@ -233,12 +247,12 @@ You can individually assign a style to each asset, that will be used by default 
 
 _Sensors_ are data definitions on your device's state, normally produced by real-world's sensors - e.g. temperature and humidity, accelerometer forces, gps locations, etcetera. We will map these state values to defined sensor names and data types.
 
-To add a sensor, select a **unique name** for the sensor, a _Sensor type_, the location of the value field - starting from the `state` variable - and the Units, and click _Save_.
+To add a sensor, select a **unique name** [for the sensor](##for the sensor), a _Sensor type_, the location of the value field - starting from the `state` variable - and the Units, and click _Save_.
 
 **Example:**
 
-* **Sensor name:** CoolerTemperature
-* **Sensor Type:** Number
+* **Sensor name:** [CoolerTemperature](##CoolerTemperature)
+* **Sensor Type:** [Number](##Number)
 * **Value Field:** `systems.cooler.temperature`
 * **Value Units:** `ºC`.
 
@@ -257,5 +271,5 @@ This sample code is made available under a modified MIT license. See the [LICENS
 
 ### Graphical content
 
-* **Landing page background image:** Licensed under the [Pixabay license](https://pixabay.com/en/service/license/).
+* **Landing page background image:** [Licensed under the ](##Licensed under the )[Pixabay license](https://pixabay.com/en/service/license/).
 * **Logo**: Truck licensed under the [Pixabay license](https://pixabay.com/en/service/license/), modified to include the AWS logo and the solution title.
