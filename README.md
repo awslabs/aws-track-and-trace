@@ -176,11 +176,37 @@ Click on the _Access_ button to start the authentication process. You should be 
 
 The UI is a Single Page Application that renders a fullscreen map and certain tools to interact with the solution. The first time you access the map it should have no assets present. You should be able to zoom and pan the map to your desire.
 
+TODO More here
+
 ### Adding assets
 
-You can add as many assets as you want to be shown in your map. An asset is - in essence - an [AWS IoT Thing](https://docs.aws.amazon.com/iot/latest/developerguide/iot-thing-management.html). This _Thing_ will have a state object that will handle the status of your asset at all times. Your asset can also send _telemetry_ information, that will not be stored as state, but used for rendering and reporting processes.
+You can add as many assets as you want to be shown in your map. An asset is - in essence - an [AWS IoT Thing](https://docs.aws.amazon.com/iot/latest/developerguide/iot-thing-management.html). This _Thing_ will have a state object that will handle the status of your asset at all times. 
 
-Once you have identified the name of the Things you want to track, you can click in the 
+The system has a tool for adding these _Things_, that you can find on the config tab - the _cog_ icon on the left overlay menu. This tool will help you reference your Things, and map the `location` variable from those Things' states. This variable will help the system render your Thing in the map, and subscribe to its state-change events so the map item updates automatically when there's a location change.
+
+![Add asset menu](/static/add-asset-menu.png)
+
+Input the **Thing name** in the first field, and the `location` variable in the second. The location variable should be the path to where the actual asset latitude and longitude are stored, starting from the reported state object - stored in the device's shadow. The location object should have a similar appearance than this: 
+
+```json
+{
+  "latitude": 1.23,
+  "longitude": 4.56
+}
+```
+
+Once you have these values set up, you can click on the _Onboard_ button. You should see a dark dot appearing in the map immediately, and a notification once the system has persisted the asset information in the backend storage.
+
+**Sample device onboarding**
+
+![Sample device onboarding](/static/add-asset-sample.png)
+
+![Sample device attributes](/static/add-asset-sample-attrs.png)
+
+* **Thing name:** `AWSTrackAndTrace_TestDevice1`
+* **Location variable:** `systems.gps.location`
+
+![Sample device onboarded](/static/add-asset-sample-result.png)
 
 ## License Summary
 
