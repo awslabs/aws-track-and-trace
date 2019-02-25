@@ -162,7 +162,7 @@ Is the UI not deploying correctly? Take a look at the [TROUBLESHOOTING](./TROUBL
 
 When your deployment finishes successfully you could start testing it by accessing its URL. If you have configured your custom domain you could simply navigate to it - e.g. `myfleet.example.com`. Otherwise you'll need to retrieve the distribution URL, which will be the entry point to your solution. From the project's root folder execute `npm run get:entry`. It will print the distribution URL to the standard output.
 
-## Using the system
+## First use of the system
 
 Type the URL you've gathered previously on a browser. You will be redirected to your recently deployed system, more specifically to the UI's landing page. 
 
@@ -207,6 +207,49 @@ Once you have these values set up, you can click on the _Onboard_ button. You sh
 * **Location variable:** `systems.gps.location`
 
 ![Sample device onboarded](/static/add-asset-sample-result.png)
+
+## Customizing assets
+
+Once you have onboarded several assets, you would want to give them additional styling configuration so you could identify them easier. To start customizing your assets, simply click on their marker on the map.
+
+![Customize assset overview](/static/customize-asset-overview.png)
+
+### Configuring asset style
+
+You can individually assign a style to each asset, that will be used by default to render such asset's marker. The marker style must have the following structure:
+
+```json
+{
+  "path": "CIRCLE",
+  "scale": 8,
+  "fillColor": "#444",
+  "fillOpacity": 1,
+  "strokeWeight": 0,
+  "strokeColor": "#444"
+}
+```
+
+### Using asset sensors
+
+_Sensors_ are data definitions on your device's state, normally produced by real-world's sensors - e.g. temperature and humidity, accelerometer forces, gps locations, etcetera. We will map these state values to defined sensor names and data types.
+
+To add a sensor, select a **unique name** for the sensor, a _Sensor type_, the location of the value field - starting from the `state` variable - and the Units, and click _Save_.
+
+**Example:**
+
+* **Sensor name:** CoolerTemperature
+* **Sensor Type:** Number
+* **Value Field:** `systems.cooler.temperature`
+* **Value Units:** `ºC`.
+
+Once the sensor is saved, we could use it to create style conditions. Style conditions can modify the appearance of your assets if the condition expression is matched - e.g. set the `fillColor` to `blue` if temperature goes below 15ºC. Conditions are evaluated in order, and only style overrides need to be defined.
+
+**Example:**
+
+* **Condition Expression:** `CoolerTemperature < 15`
+* **Style Override:** `{ "fillColor": "blue" }`.
+
+![Map with assets](/static/map-with-assets.png)
 
 ## License Summary
 
