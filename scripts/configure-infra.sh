@@ -14,7 +14,8 @@ export aws_region=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | sele
 export user_pool_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "UserPoolId") | .OutputValue')
 export user_pool_client_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "UserPoolClientId") | .OutputValue')
 export identity_pool_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "IdentityPoolId") | .OutputValue')
-export inventory_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryTableName") | .OutputValue')
+export inventory_assets_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryAssetsTableName") | .OutputValue')
+export inventory_sensors_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventorySensorsTableName") | .OutputValue')
 export inventory_assets_bucket_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryAssetsBucketName") | .OutputValue')
 export iot_endpoint=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS | jq -r '.endpointAddress')
 export people_policy_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "PeopleIotPolicy") | .OutputValue')
@@ -33,7 +34,8 @@ echo "export USER_POOL_CLIENT_ID=\"$user_pool_client_id\"" >> ${script_dir}/conf
 echo "export IOT_ENDPOINT=\"$iot_endpoint\"" >> ${script_dir}/config.infra.sh
 echo "export PEOPLE_POLICY_NAME=\"$people_policy_name\"" >> ${script_dir}/config.infra.sh
 echo "export IDENTITY_POOL_ID=\"$identity_pool_id\"" >> ${script_dir}/config.infra.sh
-echo "export INVENTORY_TABLE_NAME=\"$inventory_table_name\"" >> ${script_dir}/config.infra.sh
+echo "export INVENTORY_ASSETS_TABLE_NAME=\"$inventory_assets_table_name\"" >> ${script_dir}/config.infra.sh
+echo "export INVENTORY_SENSORS_TABLE_NAME=\"$inventory_sensors_table_name\"" >> ${script_dir}/config.infra.sh
 echo "export INVENTORY_ASSETS_BUCKET_NAME=\"$inventory_assets_bucket_name\"" >> ${script_dir}/config.infra.sh
 echo "export UNAUTHENTICATED_ROLE_ARN=\"$unauthenticated_role_arn\"" >> ${script_dir}/config.infra.sh
 echo "export AUTHENTICATED_ROLE_ARN=\"$authenticated_role_arn\"" >> ${script_dir}/config.infra.sh

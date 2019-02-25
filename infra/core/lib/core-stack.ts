@@ -91,9 +91,13 @@ export class CoreStack extends Stack {
         'dynamodb:GetItem',
         'dynamodb:PutItem',
         'dynamodb:Query',
-        'dynamodb:Scan'
+        'dynamodb:Scan',
+        'dynamodb:DeleteItem'
       )
-      .addResource(this.inventory.inventoryTable.tableArn)
+      .addResources(
+        this.inventory.assetsTable.tableArn,
+        this.inventory.sensorsTable.tableArn
+      )
     );
 
     this.createAdminUser(props);
@@ -140,7 +144,8 @@ export class CoreStack extends Stack {
     new Output(this, 'UnauthenticatedRoleArn', { value: this.auth.identityPoolUnauthRole.roleArn, disableExport });
 
     // Inventory
-    new Output(this, 'InventoryTableName', { value: this.inventory.inventoryTable.tableName, disableExport });
+    new Output(this, 'InventoryAssetsTableName', { value: this.inventory.assetsTable.tableName, disableExport });
+    new Output(this, 'InventorySensorsTableName', { value: this.inventory.sensorsTable.tableName, disableExport });
     new Output(this, 'InventoryAssetsBucketName', { value: this.inventory.assetsBucket.bucketName, disableExport });
 
     // Web UI

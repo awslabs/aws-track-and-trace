@@ -4,8 +4,11 @@ import { Bucket } from '@aws-cdk/aws-s3';
 
 export class Inventory extends Construct {
 
-  /** @returns the Inventory DynamoDB table */
-  public readonly inventoryTable: Table;
+  /** @returns the Inventory assets DynamoDB table */
+  public readonly assetsTable: Table;
+
+  /** @returns the Inventory Sensors DynamoDB table */
+  public readonly sensorsTable: Table;
 
   /** @returns the assets bucket */
   public readonly assetsBucket: Bucket;
@@ -13,9 +16,20 @@ export class Inventory extends Construct {
   constructor(scope: Construct, id: string) {
     super(scope, id);
 
-    this.inventoryTable = new Table(this, 'InventoryTable', {
+    this.assetsTable = new Table(this, 'InventoryAssetsTable', {
       partitionKey: {
         name: 'AssetId',
+        type: AttributeType.String
+      }
+    });
+
+    this.sensorsTable = new Table(this, 'InventorySensorsTable', {
+      partitionKey: {
+        name: 'AssetId',
+        type: AttributeType.String
+      },
+      sortKey: {
+        name: 'SensorId',
         type: AttributeType.String
       }
     });
