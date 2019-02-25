@@ -19,8 +19,8 @@
         </div>
         <div v-else>
           <!-- Text inputs -->
-          <input :ref="field.id" v-if="'text' === field.type" type="text" class="form-control form-control-alt" :id="field.id" :name="field.id" :placeholder="field.placeholder" v-model="metadata.model[field.id]">
-          <input :ref="field.id" v-else-if="'password' === field.type" type="password" class="form-control form-control-alt" :id="field.id" :name="field.id" :placeholder="field.placeholder" v-model="metadata.model[field.id]">
+          <input :ref="field.id" v-if="'text' === field.type" type="text" class="form-control form-control-alt" :id="field.id" :name="field.id" :placeholder="field.placeholder" v-model="metadata.model[field.id]" :disabled="field.disabled">
+          <input :ref="field.id" v-else-if="'password' === field.type" type="password" class="form-control form-control-alt" :id="field.id" :name="field.id" :placeholder="field.placeholder" v-model="metadata.model[field.id]" :disabled="field.disabled">
           <textarea :ref="field.id" v-else-if="'textarea' === field.type" class="form-control form-control-alt" :rows="field.rows" :class="field.style" :id="field.id" :name="field.id" :placeholder="field.placeholder" v-model="metadata.model[field.id]"></textarea>
 
           <!-- Select -->

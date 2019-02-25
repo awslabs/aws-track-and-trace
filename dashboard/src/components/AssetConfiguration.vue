@@ -67,10 +67,10 @@
           <div class="no-conditions" v-if="!styleConditions.length">
             You have setup no conditions
           </div>
-          <div class="condition" v-for="(condition, index) in styleConditions" :key="index">
+          <div class="condition" v-for="(condition, index) in sortedStyleConditions" :key="index">
             <div class="info">
               <span class="matches">
-                <i class="text-danger fas fa-times"></i>
+                <i :class="verifyConditionMatch(condition).matchClass"></i>
               </span>
               <span class="expression">{{ condition.ConditionExpression }}</span>
             </div>
@@ -170,19 +170,21 @@ export default {
               type: 'text',
               label: 'Thing name',
               placeholder: 'MyAsset1',
-              hint: 'The thing name in AWS IoT'
+              hint: 'The thing name in AWS IoT',
+              disabled: true
             },
             {
               id: 'LocationField',
               type: 'text',
               label: 'Location variable',
               placeholder: 'systems.gps.location',
-              hint: 'Path to the location variable'
+              hint: 'Path to the location variable',
+              disabled: true
             }
           ],
-          model: {
+          model: this.asset ? this.asset.$inventory : {
             AssetId: '',
-            locationField: ''
+            LocationField: ''
           }
         },
         sensorOnboarding: {
@@ -294,16 +296,21 @@ export default {
         lat: this.asset.location.latitude,
         lng: this.asset.location.longitude
       };
+    },
+    sortedStyleConditions () {
+      return this.styleConditions.sort((a, b) => {
+        return a.Priority - b.Priority;
+      });
     }
   },
   created () {
-    this.config = ConfigurationService.getInstance();
+    this.configService = ConfigurationService.getInstance();
     this.ddb = DdbService.getInstance();
     this.fwk = FrameworkService.getInstance();
 
-    this.assetsTableName     = this.config.get('INVENTORY_ASSETS_TABLE_NAME');
-    this.conditionsTableName = this.config.get('INVENTORY_CONDITIONS_TABLE_NAME');
-    this.sensorsTableName    = this.config.get('INVENTORY_SENSORS_TABLE_NAME');
+    this.assetsTableName     = this.configService.get('INVENTORY_ASSETS_TABLE_NAME');
+    this.conditionsTableName = this.configService.get('INVENTORY_CONDITIONS_TABLE_NAME');
+    this.sensorsTableName    = this.configService.get('INVENTORY_SENSORS_TABLE_NAME');
   },
   mounted () {
     if (this.asset.$inventory.MarkerStyle) {
@@ -328,9 +335,21 @@ export default {
       }
     },
 
+    async deleteStyleCondition (condition) {
+      console.log ('INFO: Deleting sensor');
+      const { AssetId, ConditionId } = condition;
+
+      try {
+        const ret = await this.ddb.delete(this.conditionsTableName, { AssetId, ConditionId });
+        this.fwk.addAlert('success', `Successfully deleted condition.`);
+        this.fetchConditions();
+      } catch (e) {
+        this.fwk.addAlert('danger', `Failed to delete sensor.`);
+      }
+    },
+
     editMainStyle () {
       this.config.stylingViewStatus = 'edit';
-      this.$forceUpdate();
     },
     
     async fetchConditions () {
@@ -366,7 +385,13 @@ export default {
       const ret = { ...parsedStyle };
       ret.path = this.google.maps.SymbolPath[parsedStyle.path];
 
-      return ret;
+      const conditions = this.styleConditions
+        .filter(condition => this.verifyConditionMatch(condition).matches)
+        .reverse()
+        .map(condition => JSON.parse(condition.StyleOverrides))
+        .reduce((total, item) => ({ ...total, ...item }), ret)
+
+      return conditions;
     },
 
     async onboardSensor (data) {
@@ -435,20 +460,54 @@ export default {
         const ret = await this.ddb.update(this.assetsTableName, { AssetId }, UpdateExpression, names, values);
         this.fwk.addAlert('success', 'Successsfully stored asset style');
         this.config.stylingViewStatus = 'conditions';
-        this.$forceUpdate();
       } catch (e) {
         this.fwk.addAlert('danger', 'Failed to store asset style');
       }
     },
 
+    sortStyleCondition (condition, direction) {
+      const index = this.sortedStyleConditions.indexOf(condition);
+      const item = direction > 0 ? this.sortedStyleConditions[index + 1] : this.sortedStyleConditions[index - 1];
+      condition.Priority = item.Priority + direction;
+    },
+
     startAddingSensor () {
       this.config.sensorsViewStatus = 'add';
-      this.$forceUpdate();
     },
 
     startAddingStyleCondition () {
       this.config.stylingViewStatus = 'condition-add';
-      this.$forceUpdate();
+    },
+
+    verifyConditionMatch (condition) {
+      const state = this.asset.$state;
+      const sensorList = this.sensors;
+      const sensors = sensorList.map(item => {
+        const { ValueField } = item;
+        const value = eval(`state.${ValueField}`);
+        
+        return {
+          key: item.SensorName,
+          value
+        };
+      }).reduce((total, item) => {
+        total[item.key] = item.value;
+        return total;
+      }, {});
+
+      let expressionString = condition.ConditionExpression;
+      Object.keys(sensors).forEach(sensor => {
+        expressionString = expressionString.replace(new RegExp(sensor, 'ig'), `sensors.${sensor}`);
+      });
+
+      const value = eval(expressionString);
+      const matches = !!value;
+      
+      const matchClass = matches ? 'text-success fas fa-check' : 'text-danger fas fa-times';
+
+      return {
+        matches, matchClass
+      };
     }
   },
   watch: {

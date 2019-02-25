@@ -15,7 +15,7 @@
         :position="parseLocation(asset)"
         :clickable="true"
         :draggable="false"
-        @click="clickVehicle(asset)"
+        @click="assetClick(asset)"
         :icon="getMapIcon(asset)"
       />
       <GmapCircle
@@ -27,23 +27,22 @@
         :draggable="false"
         :radius="alert.radius"
         :options="alert.options"
-        @click="clickVehicle(asset)"
       />
     </GmapMap>
     <div class="map-overlay-menu">
       <fleet-map-menu :assets="assets"></fleet-map-menu>
     </div>
-    <div class="map-overlay-panel">
+    <div class="map-overlay-panel" v-if="config.mapOverlayPanelSection">
       <div class="header">
-        <div class="title">Lorem ipsum dolor sit</div>
+        <div class="title">{{ config.mapOverlayPanelTitle }}</div>
         <div class="close">
-          <button class="btn btn-link">
+          <button class="btn btn-link" @click="closeOverlayPanel()">
             <i class="fa fa-times"></i>
           </button>
         </div>
       </div>
-      <div class="content" v-if="assets.length">
-        <asset-configuration :asset="assets[0]"></asset-configuration>
+      <div class="content">
+        <asset-configuration :asset="config.selectedAsset" v-if="config.mapOverlayPanelSection === 'asset-configuration'"></asset-configuration>
       </div>
     </div>
   </div>
@@ -90,7 +89,12 @@ export default {
         height: `${ this.height || 1080 }px`
       },
       pois: [],
-      assets: this.mapItems || []
+      assets: this.mapItems || [],
+      config: {
+        mapOverlayPanelSection: null,
+        mapOverlayPanelTitle: null,
+        selectedAsset: null
+      }
     }
   },
   computed: {
@@ -99,12 +103,14 @@ export default {
   async created () {
     this.configurationService = ConfigurationService.getInstance();
 
-    this.iotService = IotService.getInstance();
-    this.ddbService = DdbService.getInstance()
+    this.iot = IotService.getInstance();
+    this.ddb = DdbService.getInstance()
 
-    this.inventoryTableName = this.configurationService.get('INVENTORY_ASSETS_TABLE_NAME');
+    this.assetsTableName = this.configurationService.get('INVENTORY_ASSETS_TABLE_NAME');
+    this.sensorsTableName = this.configurationService.get('INVENTORY_SENSORS_TABLE_NAME');
+    this.conditionsTableName = this.configurationService.get('INVENTORY_CONDITIONS_TABLE_NAME');
 
-    const assetsClient = this.iotService.connect();
+    const assetsClient = this.iot.connect();
     assetsClient.on('connect', async () => {
       console.log('INFO: Connected to AWS Iot');
       console.log('INFO: Subscribing to topics');
@@ -139,6 +145,12 @@ export default {
         if (action.status === 'enabled') action.status = 'disabled';
         else action.status = 'enabled';
       }
+    },
+
+    async assetClick (asset) {
+      this.config.selectedAsset = asset;
+      this.config.mapOverlayPanelSection = 'asset-configuration';
+      this.config.mapOverlayPanelTitle = `Configure asset ${asset.$inventory.AssetId}`;
     },
 
     async clearPois () {
@@ -182,8 +194,11 @@ export default {
       }
     },
 
-    clickVehicle (asset) {
-      this.$router.push(`/dashboard/asset-status/${asset.vin}`);
+    closeOverlayPanel () {
+      this.config.selectedAsset = null;
+      this.config.mapOverlayPanelSection = null;
+      this.config.mapOverlayPanelTitle = null;
+      this.fetchAssets();
     },
 
     configureMap () {
@@ -198,13 +213,18 @@ export default {
       
     },
 
-    createAssetDefinition (inventoryDef, stateDef) {
+    async createAssetDefinition (inventoryDef, stateDef) {
       const location = eval(`stateDef.${inventoryDef.LocationField}`);
       // TODO Manage exceptions here
+
+      const $conditions = await this.fetchConditions(inventoryDef)
+      const $sensors = await this.fetchSensors(inventoryDef, stateDef);
 
       const ret = {
         $inventory: inventoryDef,
         $state: stateDef,
+        $conditions, 
+        $sensors,
 
         location
       };
@@ -214,28 +234,67 @@ export default {
 
     async fetchAssets () {
       console.log('INFO: Fetching assets');
-      const inventoryAssets = await this.ddbService.scan(this.inventoryTableName);
+      const inventoryAssets = await this.ddb.scan(this.assetsTableName);
       const assets = [];
       for (let i = 0; i < inventoryAssets.length; i++) {
         const inventoryAsset = inventoryAssets[i];
-        const stateAsset = await this.iotService.getAssetStatus(inventoryAsset.AssetId);
+        const stateAsset = await this.iot.getAssetStatus(inventoryAsset.AssetId);
 
-        const parsedAsset = this.createAssetDefinition(inventoryAsset, stateAsset);
+        const parsedAsset = await this.createAssetDefinition(inventoryAsset, stateAsset);
         assets.push(parsedAsset);
       }
       
       this.assets = assets;
     },
 
+    async fetchConditions (asset) {
+      console.log('INFO: Start fetching conditions');
+      const keys = { '#asset': 'AssetId' };
+      const values = { ':assetId': asset.AssetId };
+      const conditions = await this.ddb.query(this.conditionsTableName, '#asset = :assetId', keys, values);
+      return conditions;
+    },
+    
+    async fetchSensors (asset, state) {
+      console.log('INFO: Start fetching sensors');
+      const keys = { '#asset': 'AssetId' };
+      const values = { ':assetId': asset.AssetId };
+      const sensors = await this.ddb.query(this.sensorsTableName, '#asset = :assetId', keys, values);
+
+      const parsedSensors = sensors.map(sensor => {
+        const value = eval(`state.${sensor.ValueField}`);
+        return {
+          ...sensor,
+          value
+        }
+      });
+      return parsedSensors;
+    },
+
     getMapIcon (asset) {
-      return {
-        path: this.google.maps.SymbolPath.CIRCLE,
-        scale: 8,
-        fillColor: '#444',
-        fillOpacity: 1,
-        strokeWeight: 0,
-        strokeColor: '#444'
+      const style = asset.$inventory.MarkerStyle;
+      if (!style) {
+        return {
+          path: this.google.maps.SymbolPath.CIRCLE,
+          scale: 8,
+          fillColor: '#444',
+          fillOpacity: 1,
+          strokeWeight: 0,
+          strokeColor: '#444'
+        }
       }
+      const parsedStyle = JSON.parse(style);
+
+      const ret = { ...parsedStyle };
+      ret.path = this.google.maps.SymbolPath[parsedStyle.path];
+
+      const conditions = asset.$conditions
+        .filter(condition => this.verifyConditionMatch(asset, condition).matches)
+        .reverse()
+        .map(condition => JSON.parse(condition.StyleOverrides))
+        .reduce((total, item) => ({ ...total, ...item }), ret)
+
+      return conditions;
     },
 
     parseLocation (asset) {
@@ -263,6 +322,37 @@ export default {
         }
         // this.renderMarkers();
       }
+    },
+
+    verifyConditionMatch (asset, condition) {
+      const state = asset.$state;
+      const sensorList = asset.$sensors;
+      const sensors = sensorList.map(item => {
+        const { ValueField } = item;
+        const value = eval(`state.${ValueField}`);
+        
+        return {
+          key: item.SensorName,
+          value
+        };
+      }).reduce((total, item) => {
+        total[item.key] = item.value;
+        return total;
+      }, {});
+
+      let expressionString = condition.ConditionExpression;
+      Object.keys(sensors).forEach(sensor => {
+        expressionString = expressionString.replace(new RegExp(sensor, 'ig'), `sensors.${sensor}`);
+      });
+
+      const value = eval(expressionString);
+      const matches = !!value;
+      
+      const matchClass = matches ? 'text-success fas fa-check' : 'text-danger fas fa-times';
+
+      return {
+        matches, matchClass
+      };
     }
   },
   watch: {

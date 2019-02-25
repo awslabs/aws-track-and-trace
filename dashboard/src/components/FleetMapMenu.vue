@@ -137,12 +137,12 @@ export default {
     }
   },
   created () {
-    this.config = ConfigurationService.getInstance();
+    this.configService = ConfigurationService.getInstance();
     this.ddb = DdbService.getInstance();
     this.fwk = FrameworkService.getInstance();
     this.iot = IotService.getInstance();
 
-    this.inventoryTableName = this.config.get('INVENTORY_ASSETS_TABLE_NAME');
+    this.inventoryTableName = this.configService.get('INVENTORY_ASSETS_TABLE_NAME');
   },
   methods: {
     async onboardDevice (device) {
@@ -174,7 +174,6 @@ export default {
 
     setSection (section) {
       this.config.menuSection = section;
-      this.$forceUpdate();
     }
   }
 }
