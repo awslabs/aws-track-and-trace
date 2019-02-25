@@ -92,10 +92,12 @@ export class CoreStack extends Stack {
         'dynamodb:PutItem',
         'dynamodb:Query',
         'dynamodb:Scan',
-        'dynamodb:DeleteItem'
+        'dynamodb:DeleteItem',
+        'dynamodb:UpdateItem'
       )
       .addResources(
         this.inventory.assetsTable.tableArn,
+        this.inventory.conditionsTable.tableArn,
         this.inventory.sensorsTable.tableArn
       )
     );
@@ -145,6 +147,7 @@ export class CoreStack extends Stack {
 
     // Inventory
     new Output(this, 'InventoryAssetsTableName', { value: this.inventory.assetsTable.tableName, disableExport });
+    new Output(this, 'InventoryConditionsTableName', { value: this.inventory.conditionsTable.tableName, disableExport });
     new Output(this, 'InventorySensorsTableName', { value: this.inventory.sensorsTable.tableName, disableExport });
     new Output(this, 'InventoryAssetsBucketName', { value: this.inventory.assetsBucket.bucketName, disableExport });
 

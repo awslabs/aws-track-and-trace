@@ -15,6 +15,7 @@ export user_pool_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | se
 export user_pool_client_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "UserPoolClientId") | .OutputValue')
 export identity_pool_id=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "IdentityPoolId") | .OutputValue')
 export inventory_assets_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryAssetsTableName") | .OutputValue')
+export inventory_conditions_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryConditionsTableName") | .OutputValue')
 export inventory_sensors_table_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventorySensorsTableName") | .OutputValue')
 export inventory_assets_bucket_name=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "InventoryAssetsBucketName") | .OutputValue')
 export iot_endpoint=$(aws iot describe-endpoint --endpoint-type iot:Data-ATS | jq -r '.endpointAddress')
@@ -35,6 +36,7 @@ echo "export IOT_ENDPOINT=\"$iot_endpoint\"" >> ${script_dir}/config.infra.sh
 echo "export PEOPLE_POLICY_NAME=\"$people_policy_name\"" >> ${script_dir}/config.infra.sh
 echo "export IDENTITY_POOL_ID=\"$identity_pool_id\"" >> ${script_dir}/config.infra.sh
 echo "export INVENTORY_ASSETS_TABLE_NAME=\"$inventory_assets_table_name\"" >> ${script_dir}/config.infra.sh
+echo "export INVENTORY_CONDITIONS_TABLE_NAME=\"$inventory_conditions_table_name\"" >> ${script_dir}/config.infra.sh
 echo "export INVENTORY_SENSORS_TABLE_NAME=\"$inventory_sensors_table_name\"" >> ${script_dir}/config.infra.sh
 echo "export INVENTORY_ASSETS_BUCKET_NAME=\"$inventory_assets_bucket_name\"" >> ${script_dir}/config.infra.sh
 echo "export UNAUTHENTICATED_ROLE_ARN=\"$unauthenticated_role_arn\"" >> ${script_dir}/config.infra.sh

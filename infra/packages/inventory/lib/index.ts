@@ -10,6 +10,9 @@ export class Inventory extends Construct {
   /** @returns the Inventory Sensors DynamoDB table */
   public readonly sensorsTable: Table;
 
+  /** @returns the Inventory Conditions DynamoDB table */
+  public readonly conditionsTable: Table;
+
   /** @returns the assets bucket */
   public readonly assetsBucket: Bucket;
 
@@ -30,6 +33,17 @@ export class Inventory extends Construct {
       },
       sortKey: {
         name: 'SensorId',
+        type: AttributeType.String
+      }
+    });
+
+    this.conditionsTable = new Table(this, 'InventoryConditionsTable', {
+      partitionKey: {
+        name: 'AssetId',
+        type: AttributeType.String
+      },
+      sortKey: {
+        name: 'ConditionId',
         type: AttributeType.String
       }
     });
