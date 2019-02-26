@@ -71,9 +71,9 @@ let Config: ConfigModel = {
 * * **Email:** [Email address of the administrator user](##Email address of the administrator user).
 * * **Username:** [User name for the admin user](##User name for the admin user).
 * * **Phone:** [Phone number of the admin user](##Phone number of the admin user).
-* **Dns:** [_](##_)[OPTIONAL]_ Information about the DNS records.
+* **Dns:** _[OPTIONAL]_ Information about the DNS records.
 * * **Fqdn:** [Domain name of the solution](##Domain name of the solution). If you specify a Dns configuration, you **must** [provide this value](##provide this value).
-* * **Hosted_zone:** [_](##_)[OPTIONAL]_ ID of the existing hosted zone.
+* * **Hosted_zone:** _[OPTIONAL]_ ID of the existing hosted zone.
 
 Configure the values to your best convenience and store the result at `infra/config.ts`. This file will configure your deployment once we move forward.
 
