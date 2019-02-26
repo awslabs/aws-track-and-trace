@@ -479,7 +479,7 @@ export default {
         const ret = await this.ddb.update(this.conditionsTableName, { AssetId, ConditionId }, expression, names, values);
         this.fwk.addAlert('success', 'Successfully changed condition order');
       } catch (e) {
-        this.fwk.addAlert('danger', 'Failed to change condition ordeer');
+        this.fwk.addAlert('danger', 'Failed to change condition order');
       }
     },
 
