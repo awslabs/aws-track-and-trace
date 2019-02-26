@@ -28,7 +28,3 @@ config="{ \
 
 echo "INFO: Writing JSON configuration"
 echo $config > $dashboard_dir/src/assets/config.json
-
-echo "INFO: Updating config.sh file"
-echo "export WEB_UI_BUCKET_NAME=\"${WEB_UI_BUCKET_NAME}\"" >> ${script_dir}/config.sh
-echo "export WEB_DISTRIBUTION_DOMAIN_NAME=\"${WEB_DISTRIBUTION_DOMAIN_NAME}\"" >> ${script_dir}/config.sh
