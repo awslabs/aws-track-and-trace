@@ -465,10 +465,22 @@ export default {
       }
     },
 
-    sortStyleCondition (condition, direction) {
+    async sortStyleCondition (condition, direction) {
       const index = this.sortedStyleConditions.indexOf(condition);
       const item = direction > 0 ? this.sortedStyleConditions[index + 1] : this.sortedStyleConditions[index - 1];
       condition.Priority = item.Priority + direction;
+
+      const { AssetId, ConditionId } = condition
+      const expression = 'set #priority = :priority';
+      const names = { '#priority': 'Priority' };
+      const values = { ':priority': condition.Priority };
+
+      try {
+        const ret = await this.ddb.update(this.conditionsTableName, { AssetId, ConditionId }, expression, names, values);
+        this.fwk.addAlert('success', 'Successfully changed condition order');
+      } catch (e) {
+        this.fwk.addAlert('danger', 'Failed to change condition ordeer');
+      }
     },
 
     startAddingSensor () {
