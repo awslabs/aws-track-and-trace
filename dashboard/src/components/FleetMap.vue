@@ -29,8 +29,15 @@
         :options="alert.options"
       />
     </GmapMap>
-    <div class="map-overlay-menu">
-      <fleet-map-menu :assets="assets"></fleet-map-menu>
+    <div class="map-overlay-menu" :class="{ extended: config.mapOverlayMenuExtended }">
+      <div class="header">
+        <button class="btn btn-link toggle-status" @click="toggleOverlayMenuStatus()">
+          <i class="fas" :class="`fa-chevron-${ config.mapOverlayMenuExtended ? 'left' : 'right' }`"></i>
+        </button>
+      </div>
+      <div class="content">
+        <fleet-map-menu :assets="assets"></fleet-map-menu>
+      </div>
     </div>
     <div class="map-overlay-panel" v-if="config.mapOverlayPanelSection">
       <div class="header">
@@ -91,6 +98,7 @@ export default {
       pois: [],
       assets: this.mapItems || [],
       config: {
+        mapOverlayMenuExtended: false,
         mapOverlayPanelSection: null,
         mapOverlayPanelTitle: null,
         selectedAsset: null
@@ -114,8 +122,9 @@ export default {
     assetsClient.on('connect', async () => {
       console.log('INFO: Connected to AWS Iot');
       console.log('INFO: Subscribing to topics');
-      // assetsClient.subscribe('$aws/things/+/shadow/get/accepted');
-      // assetsClient.subscribe('$aws/things/+/shadow/update/accepted');
+      
+      assetsClient.subscribe('$aws/things/+/shadow/get/accepted');
+      assetsClient.subscribe('$aws/things/+/shadow/update/accepted');
 
       console.log('INFO: Fetching assets');
       await this.fetchAssets();
@@ -226,7 +235,12 @@ export default {
         $conditions, 
         $sensors,
 
-        location
+        location,
+        
+        $metrics: {
+          successes: [],
+          errors: []
+        }
       };
 
       return ret
@@ -298,30 +312,40 @@ export default {
     },
 
     parseLocation (asset) {
-      // TODO Implement
+      const location = eval(`asset.$state.${asset.$inventory.LocationField}`);
+
       return {
-        lat: asset.location.latitude,
-        lng: asset.location.longitude
+        lat: location.latitude,
+        lng: location.longitude
       };
     },
 
     processMessage (topic, payload) {
-      const vin = topic.split('/')[2];
-      const data = topic.indexOf('$aws') === 0 ? payload.state.reported : payload;
-      const item = this.assets.filter(item => item.vin === vin)[0];
-      if (item) {
-        console.log('INFO: Received request from asset to update location')
-        if (data.location instanceof Array) {
-          item.location = {
-            latitude: data.location[0],
-            longitude: data.location[1],
-            bearing: 0
-          };
-        } else if (data.location) {
-          item.location = data.location;
+      const AssetId = topic.split('/')[2];
+      const isShadow = topic.indexOf('$aws') === 0;
+      const data = isShadow ? payload.state.reported : payload;
+      const asset = this.assets.filter(item => item.$inventory.AssetId === AssetId)[0];
+      if (asset) {
+        console.log('INFO: Received request from asset to update information');
+        if (!isShadow) {
+          // TODO Manage
+        } else {
+          const mappedState = this.iot.mapAssetState(payload.state.reported, payload.metadata.reported);
+          mappedState.$metadata.timestamp = payload.timestamp;
+          mappedState.$metadata.version = payload.version;
+          
+          asset.$state = mappedState;
+
+          asset.$metrics.successes.push(new Date().getTime());
+          this.$forceUpdate();
         }
-        // this.renderMarkers();
+      } else {
+        // Ignoring message as it's not from one of our assets
       }
+    },
+
+    toggleOverlayMenuStatus () {
+      this.config.mapOverlayMenuExtended = !this.config.mapOverlayMenuExtended;
     },
 
     verifyConditionMatch (asset, condition) {
@@ -393,14 +417,56 @@ export default {
 
   .map-overlay-menu {
     position: fixed;
-    top: 80px;
+    top: 10px;
+    padding-top: 70px;
     left: 0px;
-    width: 265px;
     min-height: 100px;
-    background: rgba(255, 255, 255, .7);
     z-index: 10;
-    border-bottom-right-radius: 1em;
-    padding-bottom: 1em;
+    transition: width .1s ease-out;
+
+    .header {
+      position: absolute;
+      top: 0px;
+      left: 0px;
+      width: 100%;
+      height: 70px;
+      z-index: -1;
+      border-top-right-radius: 1em;
+      transition: background-color .1s ease-out;
+      
+      .toggle-status {
+        position: absolute;
+        top: 23px;
+        left: 270px;
+        z-index: 11;
+        padding: 0;
+      }
+    }
+
+    .content {
+      background: rgba(255, 255, 255, .7);
+      padding-bottom: 1em;
+      border-bottom-right-radius: 1em;
+    }
+
+    &:not(.extended) {
+      width: 265px;
+
+      .header {
+        background-color: transparent;
+      }
+    }
+
+    &.extended {
+      width: 60%;
+      max-width: 800px;
+      transition: width .25s ease-in;
+
+      .header {
+        transition: background-color .25s ease-in;
+        background-color: rgba(255, 255, 255, .7);
+      }
+    }
 
     .info-item {
       font-size: 2em;

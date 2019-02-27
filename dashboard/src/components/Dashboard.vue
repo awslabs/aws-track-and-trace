@@ -13,7 +13,6 @@
       <!-- Page Content -->
       <div class="content">
         <fleet-map v-if="$route.meta.visual === 'fleet-map'" :enable-overlay-menu="true"></fleet-map>
-        <vehicle-status v-if="$route.meta.visual === 'vehicle-status'"></vehicle-status>
       </div>
     </main>
     <footer></footer>
@@ -23,7 +22,6 @@
 <script>
 import FleetMap from '@/components/FleetMap';
 import Footer from '@/components/Footer';
-import VehicleStatus from '@/components/VehicleStatus';
 
 import IotService from '@/services/IotService';
 
@@ -31,8 +29,7 @@ export default {
   name: 'dashboard',
   components: {
     FleetMap,
-    Footer,
-    VehicleStatus
+    Footer
   },
   data () {
 	  return {

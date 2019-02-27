@@ -36,7 +36,29 @@
       </div>
     </div>
     <div class="menu stats" v-else-if="config.menuSection === 'stats'">
-      TODO
+      <div class="category assets">
+        <h3 class="title">
+          <i class="fas fa-microchip"></i>
+          Asset statistics
+        </h3>
+        <div class="content-wrapper">
+          <div class="asset" v-for="(asset, index) in assets" :key="index">
+            <div class="title">
+              {{ asset.$inventory.AssetId | shortify }}
+            </div>
+            <div class="metrics" v-if="asset.$metrics.successes.length || asset.$metrics.errors.length">
+              <doughnut-chart :chart-data="asset | chartData"></doughnut-chart>
+            </div>
+            <div class="metrics no-metrics" v-else>
+              No metrics available
+            </div>
+            <div class="last-message" :class="getAssetStyle(asset).class">
+              <i :class="getAssetStyle(asset).icon"></i>
+              {{ asset | lastUpdate | fromNow }}
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
     <div class="menu home customizable-menu" v-else>
       <!-- Customize the menu here -->
@@ -45,6 +67,9 @@
 </template>
 
 <script>
+import moment from 'moment';
+
+import DoughnutChart from '@/components/DoughnutChart';
 import MetaForm from '@/components/Form';
 
 import ConfigurationService from '@/services/ConfigurationService';
@@ -55,6 +80,7 @@ import IotService from '@/services/IotService';
 export default {
   name: 'fleetMapMenu',
   components: {
+    DoughnutChart,
     MetaForm
   },
   props: ['assets'],
@@ -144,7 +170,81 @@ export default {
 
     this.inventoryTableName = this.configService.get('INVENTORY_ASSETS_TABLE_NAME');
   },
+  mounted () {
+    // Configure auto-refresh
+    setInterval(() => {
+      this.$forceUpdate();
+    }, 1000);
+  },
+  filters: {
+    chartData (asset) {
+      const ret = {
+        datasets: [{
+          data: [
+            asset.$metrics.errors.length, 
+            asset.$metrics.successes.length
+          ],
+          backgroundColor: ['#df3312', '#1e8900']
+        }],
+
+        labels: [
+          'Error',
+          'OK'
+        ]
+      };
+
+      return ret;
+    },
+
+    fromNow (value) {
+      return moment(value * 1000).fromNow();
+    },
+
+    lastUpdate (asset) {
+      const location = eval(`asset.$state.${asset.$inventory.LocationField}`);
+      return location.$metadata.latitude.timestamp
+    },
+
+    shortify (value, maxLength = 20) {
+      if (value.length < maxLength) return value;
+
+      const prefixIndex = maxLength * .25 | 0;
+      const suffixIndex = maxLength * .5 | 0;
+
+      const diff = maxLength - (suffixIndex - prefixIndex);
+      if (diff < 0) {
+        return value; 
+      }
+
+      return `${value.substring(0, prefixIndex)}...${value.substring(suffixIndex)}`;
+    }
+  },
   methods: {
+    getAssetStyle (asset) {
+      const lastUpdate = asset.$state.$metadata.timestamp;
+      const now = new Date().getTime();
+
+      const diff = now - (lastUpdate * 1000);
+
+      const retStr = diff < 60000 ? 'ok' : diff < 86400000 ? 'warning' : 'error';
+
+      const ret = {
+        class: retStr,
+        icon: ''
+      };
+
+      switch (retStr) {
+        case 'ok':
+          ret.icon = 'far fa-check-circle'
+        case 'warning':
+          ret.icon = 'fas fa-exclamation-triangle'
+        case 'error':
+          ret.icon = 'fas fa-exclamation-circle';
+      }
+      
+      return ret;
+    },
+    
     async onboardDevice (device) {
       const deviceStatus = await this.iot.getAssetStatus(device.thingName);
 
@@ -174,6 +274,15 @@ export default {
 
     setSection (section) {
       this.config.menuSection = section;
+    }
+  },
+  watch: {
+    asset: {
+      handler: () => {
+        debugger
+        this.$forceUpdate()
+      },
+      deep: true
     }
   }
 }
@@ -211,20 +320,72 @@ export default {
       }
     }
 
-    &.config {
-      .category {
-        margin: 1em .5em .5em .5em;
+    .category {
+      margin: 1em .5em .5em .5em;
 
-        .title {
-          font-size: 1.2em;
-          text-transform: uppercase;
+      .title {
+        font-size: 1.2em;
+        text-transform: uppercase;
+        text-align: left;
+      }
+
+      .content-wrapper {
+        display: flex;
+        justify-content: space-evenly;
+        align-items: center;
+      }
+    }
+    
+    &.stats {
+      
+      .content-wrapper {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+
+        .asset {
+          margin: .25em;
+          padding: .5em;
+          border-radius: 3px;
           text-align: left;
-        }
+          background: rgba(255, 255, 255, .8);
 
-        .content-wrapper {
-          display: flex;
-          justify-content: space-evenly;
-          align-items: center;
+          .title {
+            font-size: .8em;
+            font-weight: bold;
+          }
+
+          .metrics {
+            margin: .5em 0;
+            width: 225px;
+
+            &.no-metrics {
+              text-align: center;
+              // margin: .5em;
+              border: 2px dashed #ddd;
+              padding: 7em 2em;
+              border-radius: 100%;
+              color: #aaa;
+              font-size: .9em;
+            }
+          }
+
+          .last-message {
+            margin-top: .5em;
+            font-size: .8em;
+            text-align: center;
+
+            &.ok {
+              color: #1e8900;
+            }
+
+            &.warning {
+              color: #eb5f07;
+            }
+
+            &.error {
+              color: #df3312;
+            }
+          }
         }
       }
     }

@@ -41,24 +41,24 @@ export default class IotService {
   }
 
   async getAssetStatus (asset) {
-    return new Promise((resolve, reject) => {
-      const thingName = asset;
-      this.iotData.getThingShadow({
-        thingName
-      }, (err, data) => {
-        if (err) {
-          console.error('ERROR: Failed to fetch asset status');
-          reject(err);
-        }
-        else {
-          console.log('INFO: Successfully fecthed asset status');
+    const thingName = asset;
+    try {
+      const data = await this.iotData.getThingShadow({ thingName }).promise();
+      console.log('INFO: Successfully fecthed asset status');
 
-          const parsedPayload = JSON.parse(data.payload);
-          let originalState = parsedPayload.state.reported;
-          resolve(originalState)
-        }
-      });
-    });
+      const parsedPayload = JSON.parse(data.payload);
+      const state = parsedPayload.state.reported;
+      const metadata = parsedPayload.metadata.reported;
+
+      const mappedState = this.mapAssetState(state, metadata);
+      mappedState.$metadata.timestamp = parsedPayload.timestamp;
+      mappedState.$metadata.version = parsedPayload.version;
+
+      return mappedState;
+    } catch (e) {
+      console.error('ERROR: Failed to fetch asset status');
+      throw e;
+    }
   }
 
   async getAllAssetStatus (assets) {
@@ -79,6 +79,35 @@ export default class IotService {
         }
       })
     });
+  }
+
+  mapAssetState (state, metadata) {
+    
+    const mappedState = Object.keys(state).map(key => {
+      const item = state[key];
+      const itemMetadata = metadata[key];
+
+      if (typeof(item) === 'object' && !(item instanceof Array)) {
+        return {
+          key,
+          value: this.mapAssetState(item, itemMetadata)
+        }
+      }
+
+      return {
+        key,
+        value: item
+      }
+    }).reduce((total, item) => {
+      const retItem = {};
+      retItem[item.key] = item.value;
+
+      return { ...total, ...retItem };
+    }, {});
+
+    mappedState.$metadata = metadata;
+
+    return mappedState;
   }
 
   async prepareAccount () {
