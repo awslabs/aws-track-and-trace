@@ -1,34 +1,36 @@
 <template>
   <div class="fleet-map" ref="mapContainer">
-    <GmapMap
-      :center="center"
-      :zoom="7"
-      map-type-id="roadmap"
-      :style="mapStyle"
-      :options="mapOptions"
-      @click="clickMap($event)"
-    >
-      <GmapMarker
-        v-if="google"
-        :key="`v${index}`"
-        v-for="(asset, index) in assets"
-        :position="parseLocation(asset)"
-        :clickable="true"
-        :draggable="false"
-        @click="assetClick(asset)"
-        :icon="getMapIcon(asset)"
-      />
-      <GmapCircle
-        v-if="google && mapActions[2].status === 'enabled'"
-        :key="`a${index}`"
-        v-for="(alert, index) in pois"
-        :center="alert.center"
-        :clickable="true"
-        :draggable="false"
-        :radius="alert.radius"
-        :options="alert.options"
-      />
-    </GmapMap>
+    <div class="map" v-if="init">
+      <GmapMap
+        :center="center"
+        :zoom="7"
+        map-type-id="roadmap"
+        :style="mapStyle"
+        :options="mapOptions"
+        @click="clickMap($event)"
+      >
+        <GmapMarker
+          v-if="google"
+          :key="`v${index}`"
+          v-for="(asset, index) in assets"
+          :position="parseLocation(asset)"
+          :clickable="true"
+          :draggable="false"
+          @click="assetClick(asset)"
+          :icon="getMapIcon(asset)"
+        />
+        <GmapCircle
+          v-if="google && mapActions[2].status === 'enabled'"
+          :key="`a${index}`"
+          v-for="(alert, index) in pois"
+          :center="alert.center"
+          :clickable="true"
+          :draggable="false"
+          :radius="alert.radius"
+          :options="alert.options"
+        />
+      </GmapMap>
+    </div>
     <div class="map-overlay-menu" :class="{ extended: config.mapOverlayMenuExtended }">
       <div class="header">
         <button class="btn btn-link toggle-status" @click="toggleOverlayMenuStatus()">
@@ -76,6 +78,7 @@ export default {
   },
   data () {
     return {
+      init: false,
       zoom: this.mapZoom || 6,
       center: {
         lat: 43.3695167, 
@@ -144,7 +147,10 @@ export default {
     if (!this.mapItems) {
       this.fetchAssets();
     }
-    this.configureMap();
+    if (!this.init) {
+      this.configureMap();
+      this.init = true;
+    }
   },
   methods: {
     actionClick (action) {
@@ -218,8 +224,6 @@ export default {
         width: `${this.width || offsetWidth}px`,
         height: `${this.height || offsetHeight}px`
       };
-
-      
     },
 
     async createAssetDefinition (inventoryDef, stateDef) {
@@ -397,22 +401,14 @@ export default {
   position: relative;
   margin: 0;
   padding: 0;
+  height: 100%;
 
-  #fleet-map {
+  .map {
     position: absolute;
     top: 0px;
     left: 0px;
-    right: 100%;
-    bottom: 100%;
-
-    #map {
-      position: absolute;
-      top: 0px;
-      left: 0px;
-      bottom: 0px;
-      right: 0px;
-      text-align: left;
-    }
+    width: 100%;
+    height: 100%;
   }
 
   .map-overlay-menu {
