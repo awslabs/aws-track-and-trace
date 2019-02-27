@@ -273,11 +273,11 @@ Once the sensor is saved, we could use it to create style conditions. Style cond
 
 The system comes with some built-in metrics that collect connectivity information about the assets and their updates to the cloud. Once you have some assets available in the UI, you can see the connectivity information in the _Statistics_ pane
 
-![Connectivity information empty](/static/asset-connetivity-stats.png)
+![Connectivity information empty](/static/asset-connectivity-stats.png)
 
 Once your assets start sending information, the elements should change to reflect the incoming messsages, and the status - last message - of the device will be updated too.
 
-![Connectivity information](/static/asset-connetivity.png)
+![Connectivity information](/static/asset-connectivity.png)
 
 ## Modifying the system
 
