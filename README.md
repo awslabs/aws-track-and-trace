@@ -269,6 +269,55 @@ Once the sensor is saved, we could use it to create style conditions. Style cond
 
 ![Map with assets](/static/map-with-assets.png)
 
+### Visualizing asset metrics
+
+The system comes with some built-in metrics that collect connectivity information about the assets and their updates to the cloud. Once you have some assets available in the UI, you can see the connectivity information in the _Statistics_ pane
+
+![Connectivity information empty](/static/asset-connetivity-stats.png)
+
+Once your assets start sending information, the elements should change to reflect the incoming messsages, and the status - last message - of the device will be updated too.
+
+![Connectivity information](/static/asset-connetivity.png)
+
+## Modifying the system
+
+This repository should contain instructions and resources to get you started. After following until this point you should have a working system in which you can render your existing assets in a map, and apply rendering conditions based on the sensor your asset is equipped with.
+
+Whilst this may be enough for demoing or evaluating the capabilities of the cloud for your needs, if you plan on using it more you may want to personalize the experience to adapt it to your needs. **Please note that the purpose of this project is NOT to be a productive solution.**
+
+### Sample infrastructure
+
+![Main architecture](/static/main-architecture-overview.png)
+
+The default infrastructure of this project uses the following services:
+
+* **Amazon Cognito:** Handles the system's userbase - i.e. users and groups - and manages authentication and authorization of users to execute system operations - effectively to manage AWS resources.
+* **Amazon S3:** Stores all the static content of the web UI.
+* **Amazon CloudFront:** Distributes your static content throughout the configured Edge locations, and caches those files for faster user access.
+* **Amazon DynamoDB:** Stores information about your fleet of assets, their sensors, and all styling conditions applied for them - in three separate tables.
+* **AWS Iot:** Handles all assets' device communications and provides real-time communication capabilities to the UI.
+* **AWS IAM:** Additionally, IAM is used to manage all permissions for users, groups and resources of the system.
+
+As explained before, all architecture for this project has been defined using the AWS CDK. You can find all infrastructure definitions under the `infra/` folder:
+
+* `core/`: System's application. This is the CDK stack that contains the main infrastructure.
+* `dns/`: DNS records and certificate definitions. Used if you deploy this solution with your own domain.
+* `packages/`: Packages that give modular functionalities to the main infrastructure.
+  * `auth/`: Authentication and authorization resources.
+  * `dns/`: DNS records for the UI - only used if you use your own domain.
+  * `inventory/`: Asset management resources.
+  * `webui/`: Infrastructure for the UI itself.
+
+You can modify any of the packages and stacks or add new ones to your discretion, to make the system works exactly as you need it to.
+
+### User Interface
+
+The User interface is built using [Vue.js](https://vuejs.org/). You can use any of Vue's functionalities to modify it, and adapt it to your needs. The UI code is hosted under the `dashboard/src/` folder, and contains the following structure:
+
+* `assets/`: Static assets used by the system
+* `components/`: Functional/Visual components for the system - e.g. `FleetMap`, `AssetConfiguration`.
+* `services/`: Tools and data connectors.
+
 ## License Summary
 
 This sample code is made available under a modified MIT license. See the [LICENSE](./LICENSE.md) file.

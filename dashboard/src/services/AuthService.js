@@ -147,6 +147,11 @@ export default class AuthService {
     }
   }
 
+  tokenExpired () {
+    // TODO Implement with Refresh token
+    this.login();
+  }
+
   postAuth (token) {
     this.decodeToken(token)
     const AccountId = this.config.get('AWS_ACCOUNT_ID')

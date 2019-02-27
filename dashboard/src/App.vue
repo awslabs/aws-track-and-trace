@@ -37,7 +37,7 @@ export default {
         const expiration = accessToken.exp * 1000
         const diff = expiration - (new Date().getTime())
         setTimeout(() => {
-          this.authService.login()
+          this.authService.tokenExpired()
         }, diff)
       } else if (!this.$route.meta.public) {
         this.authService.login()

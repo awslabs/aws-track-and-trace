@@ -197,12 +197,12 @@ export default {
     },
 
     fromNow (value) {
-      return moment(value * 1000).fromNow();
+      return moment(value).fromNow();
     },
 
     lastUpdate (asset) {
       const location = eval(`asset.$state.${asset.$inventory.LocationField}`);
-      return location.$metadata.latitude.timestamp
+      return location.$metadata.latitude.timestamp * 1000
     },
 
     shortify (value, maxLength = 20) {
@@ -221,10 +221,10 @@ export default {
   },
   methods: {
     getAssetStyle (asset) {
-      const lastUpdate = asset.$state.$metadata.timestamp;
+      const lastUpdate = this.filters.lastUpdate(asset);
       const now = new Date().getTime();
 
-      const diff = now - (lastUpdate * 1000);
+      const diff = now - lastUpdate;
 
       const retStr = diff < 60000 ? 'ok' : diff < 86400000 ? 'warning' : 'error';
 
