@@ -9,7 +9,7 @@ echo "INFO: Configuring UI"
 # Configurable parameters start #
 #################################
 
-export STACK_NAME="Users"
+export STACK_NAME="AWSTrackAndTrace"
 export AWS_REGION="eu-west-1"
 
 #################################
@@ -19,7 +19,7 @@ export AWS_REGION="eu-west-1"
 echo "INFO: Fetching deployment information."
 stack_description=$(aws cloudformation describe-stacks --stack-name ${STACK_NAME})
 
-iot_policy=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "IotPolicyName") | .OutputValue')
+iot_policy=$(echo $stack_description | jq -r '.Stacks[0].Outputs[] | select(.OutputKey == "PeopleIotPolicy") | .OutputValue')
 identity_id=${1:-none}
 if [ "none" = $identity_id ]; then
   echo "ERROR: Parameter identity_id is mandatory, and not given."

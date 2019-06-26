@@ -493,7 +493,7 @@ export default {
     right: 0px;
     left: 320px;
     bottom: 10px;
-    background: rgba(255, 255, 255, .7);
+    background: rgba(255, 255, 255, .9);
 
     border-top-left-radius: 1em;
     border-bottom-left-radius: 1em;
