@@ -72,6 +72,7 @@ import moment from 'moment';
 import DoughnutChart from '@/components/DoughnutChart';
 import MetaForm from '@/components/Form';
 
+import AssetService from '@/services/AssetService';
 import ConfigurationService from '@/services/ConfigurationService';
 import DdbService from '@/services/DdbService';
 import FrameworkService from '@/services/FrameworkService';
@@ -83,7 +84,7 @@ export default {
     DoughnutChart,
     MetaForm
   },
-  props: ['assets'],
+  props: ['assets', '@onUpdate'],
   data () {
     return {
       config: {
@@ -163,6 +164,7 @@ export default {
     }
   },
   created () {
+    this.assetService = AssetService.getInstance();
     this.configService = ConfigurationService.getInstance();
     this.ddb = DdbService.getInstance();
     this.fwk = FrameworkService.getInstance();
@@ -201,7 +203,7 @@ export default {
     },
 
     lastUpdate (asset) {
-      const location = eval(`asset.$state.${asset.$inventory.LocationField}`);
+      const location = this.assetService.getAssetLocation(asset);
       return location.$metadata.latitude.timestamp * 1000
     },
 
@@ -248,15 +250,6 @@ export default {
     async onboardDevice (device) {
       const deviceStatus = await this.iot.getAssetStatus(device.thingName);
 
-      const latitude = eval(`deviceStatus.${device.locationField}.latitude`);
-      const longitude = eval(`deviceStatus.${device.locationField}.longitude`);
-      this.assets.push({
-        ...device,
-        location: {
-          latitude, longitude
-        }
-      });
-
       const AssetId = device.thingName;
       const deviceData = {
         AssetId,
@@ -266,6 +259,7 @@ export default {
       try {
         const result = await this.ddb.put(this.inventoryTableName, { AssetId }, deviceData);
         this.fwk.addAlert('success', `Successfully registered device ${AssetId}`);
+        this.onUpdate();
       } catch (e) {
         this.fwk.addAlert('danger', `Failed to register device ${AssetId}`);
       }

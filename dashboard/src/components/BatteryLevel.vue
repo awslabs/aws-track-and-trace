@@ -62,9 +62,10 @@ export default {
       left: 18px;
       width: 130px;
       bottom: 6px;
-      background: $battery-level-low-background;
+      background: #df3312;
       border-top-left-radius: 4px;
       border-bottom-left-radius: 4px;
+      opacity: .75;
 
       &.full {
         border-top-right-radius: 4px;
@@ -72,19 +73,19 @@ export default {
       }
 
       &.low {
-        background: $battery-level-low-background;
+        background: #df3312;
       }
 
       &.mid {
-        background: $battery-level-mid-background;
+        background: #ec7211;
       }
 
       &.high {
-        background: $battery-level-high-background;
+        background: #1e8900;
       }
 
       &.unknown {
-        background: $battery-level-unknown-background;
+        background: #545b64;
       }
     }
 
@@ -95,6 +96,8 @@ export default {
       right: 0px;
       margin-top: -0.7em;
       text-align: center;
+
+      font-size: 1.2em;
     }
   }
 

@@ -14,20 +14,20 @@
           </button>
         </div>
         <div class="sensors-content" v-if="config.sensorsViewStatus !== 'add'">
-          <div class="no-sensors" v-if="!sensors.length">
+          <div class="no-sensors" v-if="!asset.$sensors.length">
             You have setup no sensors
           </div>
-          <div class="sensor" v-for="(sensor, index) in sensors" :key="index">
+          <div class="sensor" v-for="(sensor, index) in asset.$sensors" :key="index">
             <div class="info">
               <span class="name">{{ sensor.SensorName }}</span>
               <!-- <span class="type">({{ sensor.SensorType }})</span> -->
             </div>
-            <div class="current-value">
+            <!-- <div class="current-value">
               <span class="value" v-if="sensor.SensorType === 'number'">{{ sensor.value }}</span>
               <span class="value" v-else-if="sensor.SensorType === 'percent'">{{ sensor.value * 100 }}</span>
               <span class="value" v-else-if="sensor.SensorType === 'boolean'">{{ sensor.value ? 'Yes' : 'No' }}</span>
               <span class="units">{{ sensor.ValueUnits }}</span>
-            </div>
+            </div> -->
             <div class="actions">
               <button class="btn btn-outline-danger btn-sm" @click="deleteSensor(sensor)">
                 <i class="fas fa-trash"></i>
@@ -64,7 +64,7 @@
           </div>
         </div>
         <div class="conditions" v-else>
-          <div class="no-conditions" v-if="!styleConditions.length">
+          <div class="no-conditions" v-if="!asset.$conditions.length">
             You have setup no conditions
           </div>
           <div class="condition" v-for="(condition, index) in sortedStyleConditions" :key="index">
@@ -93,22 +93,7 @@
       <h2>Current status</h2>
       <div class="current-location">
         <h3>Location</h3>
-        <GmapMap
-          :center="mapCenter"
-          :zoom="7"
-          map-type-id="roadmap"
-          :style="mapStyle"
-          :options="mapOptions"
-          @click="clickMap($event)"
-        >
-          <GmapMarker
-            v-if="google"
-            :position="mapCenter"
-            :clickable="false"
-            :draggable="false"
-            :icon="getMapIcon(asset)"
-          />
-        </GmapMap>
+        <asset-map :asset="asset"></asset-map>
       </div>
       <div class="current-state">
         <h3>State</h3>
@@ -120,18 +105,20 @@
 
 <script>
 import uuid from 'uuid/v4';
-import { gmapApi } from 'vue2-google-maps';
 
+import AssetMap from '@/components/AssetMap';
 import MetaForm from '@/components/Form';
 
+import AssetService from '@/services/AssetService';
 import ConfigurationService from '@/services/ConfigurationService';
 import DdbService from '@/services/DdbService';
 import FrameworkService from '@/services/FrameworkService';
 
 export default {
   name: 'assetConfiguration',
-  props: ['asset'],
+  props: ['asset', '@onUpdate'],
   components: {
+    AssetMap,
     MetaForm
   },
   data () {
@@ -148,20 +135,6 @@ export default {
         strokeWeight: 0,
         strokeColor: '#444'
       }, null, 2),
-      sensors: [],
-      styleConditions: [],
-      mapOptions: {
-        zoomControl: false,
-        mapTypeControl: false,
-        scaleControl: false,
-        streetViewControl: false,
-        rotateControl: false,
-        fullscreenControl: false
-      },
-      mapStyle: {
-        width: `${ this.width || 320 }px`,
-        height: `${ this.height || 240 }px`
-      },
       forms: {
         assetBasicInformation: {
           fields: [
@@ -200,7 +173,7 @@ export default {
               id: 'SensorName',
               type: 'text',
               label: 'Sensor name',
-              placeholder: 'Cooler temperature',
+              placeholder: 'CoolerTemperature',
               hint: 'Set a name for your sensor'
             },
             {
@@ -221,6 +194,14 @@ export default {
                 {
                   label: 'Boolean',
                   value: 'boolean'
+                },
+                {
+                  label: 'Battery Level',
+                  value: 'battery'
+                },
+                {
+                  label: 'Tyre pressure',
+                  value: 'tyres'
                 }
               ]
             },
@@ -285,25 +266,17 @@ export default {
     }
   },
   computed: {
-    google: gmapApi,
     assetState () {
       return JSON.stringify(this.asset.$state, null, 2);
     },
-    mapCenter () {
-      if (!this.asset) return null;
-
-      return {
-        lat: this.asset.location.latitude,
-        lng: this.asset.location.longitude
-      };
-    },
     sortedStyleConditions () {
-      return this.styleConditions.sort((a, b) => {
+      return this.asset.$conditions.sort((a, b) => {
         return a.Priority - b.Priority;
       });
     }
   },
   created () {
+    this.assetService = AssetService.getInstance();
     this.configService = ConfigurationService.getInstance();
     this.ddb = DdbService.getInstance();
     this.fwk = FrameworkService.getInstance();
@@ -318,8 +291,6 @@ export default {
       this.assetStyle = JSON.stringify(parsed, null, 2);
       this.config.stylingViewStatus = 'conditions';
     }
-    this.fetchConditions();
-    this.fetchSensors();
   },
   methods: {
     async deleteSensor (sensor) {
@@ -351,53 +322,10 @@ export default {
     editMainStyle () {
       this.config.stylingViewStatus = 'edit';
     },
-    
-    async fetchConditions () {
-      console.log('INFO: Start fetching conditions');
-      const keys = { '#asset': 'AssetId' };
-      const values = { ':assetId': this.asset.$inventory.AssetId };
-      const conditions = await this.ddb.query(this.conditionsTableName, '#asset = :assetId', keys, values);
-      this.styleConditions = conditions
-      this.$forceUpdate()
-    },
-    
-    async fetchSensors () {
-      console.log('INFO: Start fetching sensors');
-      const keys = { '#asset': 'AssetId' };
-      const values = { ':assetId': this.asset.$inventory.AssetId };
-      const sensors = await this.ddb.query(this.sensorsTableName, '#asset = :assetId', keys, values);
-
-      const state = this.asset.$state;
-      this.sensors = sensors.map(sensor => {
-        const value = eval(`state.${sensor.ValueField}`);
-        return {
-          ...sensor,
-          value
-        }
-      });
-      this.$forceUpdate()
-    },
-
-    getMapIcon (asset) {
-      const style = this.assetStyle;
-      const parsedStyle = JSON.parse(style);
-
-      const ret = { ...parsedStyle };
-      ret.path = this.google.maps.SymbolPath[parsedStyle.path];
-
-      const conditions = this.styleConditions
-        .filter(condition => this.verifyConditionMatch(condition).matches)
-        .reverse()
-        .map(condition => JSON.parse(condition.StyleOverrides))
-        .reduce((total, item) => ({ ...total, ...item }), ret)
-
-      return conditions;
-    },
 
     async onboardSensor (data) {
       console.log('INFO: Saving sensor');
-      const state = this.asset.$state;
-      const currentValue = eval(`state.${data.ValueField}`);
+      const currentValue = this.assetService.getSensorValue(this.asset, data);
 
       const AssetId = this.asset.$inventory.AssetId;
       const SensorId = data.SensorName;
@@ -417,7 +345,7 @@ export default {
           SensorType: '',
           ValueField: ''
         }
-        await this.fetchSensors();
+        this.onUpdate();
       } catch (e) {
         this.fwk.addAlert('danger', `Failed to add sensor ${SensorId}`);
       }
@@ -439,7 +367,7 @@ export default {
         const ret = await this.ddb.put(this.conditionsTableName, { AssetId, ConditionId }, item);
         this.fwk.addAlert('success', 'Successfully added condition');
         this.config.stylingViewStatus = 'conditions';
-        await this.fetchConditions();
+        this.onUpdate();
       } catch (e) {
         this.fwk.addAlert('danger', 'Failed to add condition to marker style')
       }
@@ -492,31 +420,8 @@ export default {
     },
 
     verifyConditionMatch (condition) {
-      const state = this.asset.$state;
-      const sensorList = this.sensors;
-      const sensors = sensorList.map(item => {
-        const { ValueField } = item;
-        const value = eval(`state.${ValueField}`);
-        
-        return {
-          key: item.SensorName,
-          value
-        };
-      }).reduce((total, item) => {
-        total[item.key] = item.value;
-        return total;
-      }, {});
-
-      let expressionString = condition.ConditionExpression;
-      Object.keys(sensors).forEach(sensor => {
-        expressionString = expressionString.replace(new RegExp(sensor, 'ig'), `sensors.${sensor}`);
-      });
-
-      const value = eval(expressionString);
-      const matches = !!value;
-      
+      const matches = this.assetService.verifyConditionMatch(this.asset, condition);
       const matchClass = matches ? 'text-success fas fa-check' : 'text-danger fas fa-times';
-
       return {
         matches, matchClass
       };
@@ -773,6 +678,8 @@ export default {
         background: rgba(255, 255, 255, .8);
         padding: .5em;
         border-radius: .5em;
+        max-height: 400px;
+        overflow: auto;
       }
     }
   }

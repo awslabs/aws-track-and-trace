@@ -2,6 +2,7 @@
   <div class="fleet-map" ref="mapContainer">
     <div class="map" v-if="init">
       <GmapMap
+        ref="fleetMap"
         :center="center"
         :zoom="7"
         map-type-id="roadmap"
@@ -38,12 +39,23 @@
         </button>
       </div>
       <div class="content">
-        <fleet-map-menu :assets="assets"></fleet-map-menu>
+        <fleet-map-menu :assets="assets" @on-update="updateAssets()"></fleet-map-menu>
       </div>
     </div>
     <div class="map-overlay-panel" v-if="config.mapOverlayPanelSection">
       <div class="header">
-        <div class="title">{{ config.mapOverlayPanelTitle }}</div>
+        <div class="title">
+          <button class="btn btn-link overview" :class="{ active: config.mapOverlayPanelSection === 'asset-overview' }" @click="config.mapOverlayPanelSection = 'asset-overview'">
+            <i class="fas fa-search"></i>
+            {{ config.mapOverlayPanelTitle }}
+          </button>
+          <!-- <button class="btn btn-link stats" :class="{ active: config.mapOverlayPanelSection === 'asset-stats' }" @click="config.mapOverlayPanelSection = 'asset-stats'">
+            <i class="fas fa-chart-line"></i>
+          </button> -->
+          <button class="btn btn-link config" :class="{ active: config.mapOverlayPanelSection === 'asset-configuration' }" @click="config.mapOverlayPanelSection = 'asset-configuration'">
+            <i class="fas fa-cog"></i>
+          </button>
+        </div>
         <div class="close">
           <button class="btn btn-link" @click="closeOverlayPanel()">
             <i class="fa fa-times"></i>
@@ -51,7 +63,14 @@
         </div>
       </div>
       <div class="content">
-        <asset-configuration :asset="config.selectedAsset" v-if="config.mapOverlayPanelSection === 'asset-configuration'"></asset-configuration>
+        <asset-overview 
+          :asset="config.selectedAsset" 
+          v-if="config.mapOverlayPanelSection === 'asset-overview'"></asset-overview>
+        <asset-configuration 
+          :asset="config.selectedAsset" 
+          @on-update="updateAssets()"
+          v-else-if="config.mapOverlayPanelSection === 'asset-configuration'">
+        </asset-configuration>
       </div>
     </div>
   </div>
@@ -63,8 +82,10 @@ import nameGenerator from 'project-name-generator';
 import randomColor from 'randomcolor';
 
 import AssetConfiguration from '@/components/AssetConfiguration';
+import AssetOverview from '@/components/AssetOverview';
 import FleetMapMenu from '@/components/FleetMapMenu';
 
+import AssetService from '@/services/AssetService';
 import ConfigurationService from '@/services/ConfigurationService';
 import DdbService from '@/services/DdbService';
 import IotService from '@/services/IotService';
@@ -74,6 +95,7 @@ export default {
   props: ['mapCenter', 'mapClick', 'mapItems', 'mapZoom', 'width', 'height', 'enableOverlayMenu'],
   components: {
     AssetConfiguration,
+    AssetOverview,
     FleetMapMenu
   },
   data () {
@@ -112,8 +134,8 @@ export default {
     google: gmapApi,
   },
   async created () {
+    this.assetService = AssetService.getInstance();
     this.configurationService = ConfigurationService.getInstance();
-
     this.iot = IotService.getInstance();
     this.ddb = DdbService.getInstance()
 
@@ -143,7 +165,7 @@ export default {
       }
     })
   },
-  mounted () {
+  async mounted () {
     if (!this.mapItems) {
       this.fetchAssets();
     }
@@ -164,8 +186,8 @@ export default {
 
     async assetClick (asset) {
       this.config.selectedAsset = asset;
-      this.config.mapOverlayPanelSection = 'asset-configuration';
-      this.config.mapOverlayPanelTitle = `Configure asset ${asset.$inventory.AssetId}`;
+      this.config.mapOverlayPanelSection = 'asset-overview';
+      this.config.mapOverlayPanelTitle = `${asset.$inventory.AssetId}`;
     },
 
     async clearPois () {
@@ -227,25 +249,26 @@ export default {
     },
 
     async createAssetDefinition (inventoryDef, stateDef) {
-      const location = eval(`stateDef.${inventoryDef.LocationField}`);
-      // TODO Manage exceptions here
+      console.log('INFO: Creating asset definition')
 
-      const $conditions = await this.fetchConditions(inventoryDef)
-      const $sensors = await this.fetchSensors(inventoryDef, stateDef);
-
+      console.log('INFO: Preparing object');
       const ret = {
         $inventory: inventoryDef,
         $state: stateDef,
-        $conditions, 
-        $sensors,
-
-        location,
         
         $metrics: {
           successes: [],
           errors: []
         }
       };
+
+      console.log('INFO: Fetching conditions');
+      const $conditions = await this.fetchConditions(ret);
+      console.log('INFO: Fetching sensors');
+      const $sensors = await this.fetchSensors(ret);
+
+      ret.$conditions = $conditions;
+      ret.$sensors = $sensors
 
       return ret
     },
@@ -268,19 +291,19 @@ export default {
     async fetchConditions (asset) {
       console.log('INFO: Start fetching conditions');
       const keys = { '#asset': 'AssetId' };
-      const values = { ':assetId': asset.AssetId };
+      const values = { ':assetId': asset.$inventory.AssetId };
       const conditions = await this.ddb.query(this.conditionsTableName, '#asset = :assetId', keys, values);
       return conditions;
     },
     
-    async fetchSensors (asset, state) {
+    async fetchSensors (asset) {
       console.log('INFO: Start fetching sensors');
       const keys = { '#asset': 'AssetId' };
-      const values = { ':assetId': asset.AssetId };
+      const values = { ':assetId': asset.$inventory.AssetId };
       const sensors = await this.ddb.query(this.sensorsTableName, '#asset = :assetId', keys, values);
 
       const parsedSensors = sensors.map(sensor => {
-        const value = eval(`state.${sensor.ValueField}`);
+        const value = this.assetService.getSensorValue(asset, sensor);
         return {
           ...sensor,
           value
@@ -290,33 +313,14 @@ export default {
     },
 
     getMapIcon (asset) {
-      const style = asset.$inventory.MarkerStyle;
-      if (!style) {
-        return {
-          path: this.google.maps.SymbolPath.CIRCLE,
-          scale: 8,
-          fillColor: '#444',
-          fillOpacity: 1,
-          strokeWeight: 0,
-          strokeColor: '#444'
-        }
-      }
-      const parsedStyle = JSON.parse(style);
+      const style = this.assetService.getAssetStyle(asset);
+      style.path = this.google.maps.SymbolPath[style.path];
 
-      const ret = { ...parsedStyle };
-      ret.path = this.google.maps.SymbolPath[parsedStyle.path];
-
-      const conditions = asset.$conditions
-        .filter(condition => this.verifyConditionMatch(asset, condition).matches)
-        .reverse()
-        .map(condition => JSON.parse(condition.StyleOverrides))
-        .reduce((total, item) => ({ ...total, ...item }), ret)
-
-      return conditions;
+      return style;
     },
 
     parseLocation (asset) {
-      const location = eval(`asset.$state.${asset.$inventory.LocationField}`);
+      const location = this.assetService.getAssetLocation(asset);
 
       return {
         lat: location.latitude,
@@ -352,32 +356,13 @@ export default {
       this.config.mapOverlayMenuExtended = !this.config.mapOverlayMenuExtended;
     },
 
+    async updateAssets () {
+      await this.fetchAssets();
+    },
+
     verifyConditionMatch (asset, condition) {
-      const state = asset.$state;
-      const sensorList = asset.$sensors;
-      const sensors = sensorList.map(item => {
-        const { ValueField } = item;
-        const value = eval(`state.${ValueField}`);
-        
-        return {
-          key: item.SensorName,
-          value
-        };
-      }).reduce((total, item) => {
-        total[item.key] = item.value;
-        return total;
-      }, {});
-
-      let expressionString = condition.ConditionExpression;
-      Object.keys(sensors).forEach(sensor => {
-        expressionString = expressionString.replace(new RegExp(sensor, 'ig'), `sensors.${sensor}`);
-      });
-
-      const value = eval(expressionString);
-      const matches = !!value;
-      
+      const matches = this.assetService.verifyConditionMatch(asset, condition);
       const matchClass = matches ? 'text-success fas fa-check' : 'text-danger fas fa-times';
-
       return {
         matches, matchClass
       };
@@ -385,8 +370,23 @@ export default {
   },
   watch: {
     assets: {
-      handler () {
-        this.$forceUpdate();
+      async handler () {
+        const map = await this.$refs.fleetMap.$mapPromise;
+        const bounds = new this.google.maps.LatLngBounds();
+        const markers = this.assets.map(asset => {
+          const location = this.parseLocation(asset);
+          return new this.google.maps.LatLng(location.lat, location.lng);
+        });
+        markers.forEach(marker => bounds.extend(marker));
+
+        const ne = bounds.getNorthEast();
+        const sw = bounds.getSouthWest();
+        const adjustmentNE = new this.google.maps.LatLng(ne.lat() + .05, ne.lng() + .05);
+        const adjustmentSW = new this.google.maps.LatLng(sw.lat() - .05, sw.lng() - .05);
+        bounds.extend(adjustmentNE);
+        bounds.extend(adjustmentSW);
+
+        map.fitBounds(bounds);
       },
       deep: true
     }
@@ -505,8 +505,17 @@ export default {
         text-align: left;
         padding: 1em;
 
-        font-size: 1.3em;
-        font-weight: 600;
+        button {
+          &.overview {
+            font-size: 1.3em;
+            font-weight: 600;
+            text-decoration: none;
+          }
+
+          &.active {
+            color: #444;
+          }
+        }        
       }
 
       .close {

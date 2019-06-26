@@ -1,16 +1,10 @@
 <template>
   <div class="tyre-pressure">
-    <div class="vehicle-container" :class="vehicle.VehicleType">
-      <!-- <div class="recommended-pressure rear">
-        {{ tyres.rearLeft }} Bar
-      </div>
-      <div class="recommended-pressure front">
-        {{ tyres.frontLeft }} Bar
-      </div> -->
-      <div class="wheel front left" :data-pressure="parsedTyres.frontLeft.pressure" :class="parsedTyres.frontLeft.health"></div>
-      <div class="wheel front right" :data-pressure="parsedTyres.frontRight.pressure" :class="parsedTyres.frontRight.health"></div>
-      <div class="wheel rear left" :data-pressure="parsedTyres.rearLeft.pressure" :class="parsedTyres.rearLeft.health"></div>
-      <div class="wheel rear right" :data-pressure="parsedTyres.rearRight.pressure" :class="parsedTyres.rearRight.health"></div>
+    <div class="vehicle-container">
+      <div class="wheel front left" :data-pressure="parsedTyres.frontLeft.pressure" :data-units="units" :class="parsedTyres.frontLeft.health"></div>
+      <div class="wheel front right" :data-pressure="parsedTyres.frontRight.pressure" :data-units="units" :class="parsedTyres.frontRight.health"></div>
+      <div class="wheel rear left" :data-pressure="parsedTyres.rearLeft.pressure" :data-units="units" :class="parsedTyres.rearLeft.health"></div>
+      <div class="wheel rear right" :data-pressure="parsedTyres.rearRight.pressure" :data-units="units" :class="parsedTyres.rearRight.health"></div>
     </div>
   </div>
 </template>
@@ -18,7 +12,7 @@
 <script>
 export default {
   name: 'tyrePressure',
-  props: ['vehicle'],
+  props: ['tyres', 'units'],
   data () {
     return {
     }
@@ -26,14 +20,19 @@ export default {
   computed: {
     parsedTyres () {
       const ret = {};
-      for (let param in this.vehicle.systems.tyres) {
-        const pressure = Math.round(this.vehicle.systems.tyres[param] * 100) / 100;
+      for (let param in this.tyres) {
+        const pressure = Math.round(this.tyres[param] * 100) / 100;
         ret[param] = {
           pressure,
           health: pressure < 29 || pressure > 37 ? 'error' : pressure < 32 || pressure > 35 ? 'warning' : 'healthy'
         }
       }
       return ret
+    }
+  },
+  methods: {
+    getTyreHealth (value) {
+      return 'healthy';
     }
   }
 }
@@ -51,16 +50,18 @@ export default {
   .vehicle-container {
     position: relative;
     width: 80%;
-    margin: 0em auto;
-    max-width: 400px;
-    min-height: 200px;
+    margin: 1.2em auto;
+    width: 174px;
+    height: 87px;
+    background: url('../assets/vehicle-top.png') center center no-repeat;
+    background-size: 100% 100%;
 
     .recommended-pressure {
       position: absolute;
       top: 50%;
       margin-top: -1em;
       text-align: center;
-      color: $tyre-pressure-recommended-text-color;
+      color: red;
       transform: rotate(90deg);
       white-space: nowrap;
 
@@ -81,29 +82,34 @@ export default {
 
     .wheel {
       position: absolute;
-      width: 50px;
-      height: 16px;
+      width: 28px;
+      height: 15px;
       border-radius: 3px;
+
+      background-position: center center;
+      background-repeat: no-repeat;
+      background-size: 100% 100%;
 
       &::before {
         position: absolute;
-        left: 0px;
+        left: -.25em;
         width: 100%;
         text-align: center;
-        font-size: 1.2em;
-        content: attr(data-pressure)'psi';
+        font-size: 0.9em;
+        color: #879196;
+        content: attr(data-pressure)attr(data-units);
       }
 
       &.rear {
-        right: 10%;
+        right: 10.3%;
       }
 
       &.front {
-        left: 15%;
+        left: 13.5%;
       }
 
       &.right {
-        top: 3px;
+        top: 10px;
 
         &::before {
           top: -1.5em;
@@ -111,7 +117,7 @@ export default {
       }
 
       &.left {
-        bottom: 3px;
+        bottom: 10px;
 
         &::before {
           bottom: -1.5em;
@@ -119,18 +125,15 @@ export default {
       }
 
       &.error {
-        background: url('../assets/tyres_red.png') center center no-repeat;
-        background-size: 100% auto;
+        background-image: url('../assets/tyres_red.png');
       }
 
       &.warning {
-        background: url('../assets/tyres_yellow.png') center center no-repeat;
-        background-size: 100% auto;
+        background-image: url('../assets/tyres_yellow.png');
       }
 
       &.healthy {
-        background: url('../assets/tyres_green.png') center center no-repeat;
-        background-size: 100% auto;
+        background-image: url('../assets/tyres_green.png');
       }
     }
   }
