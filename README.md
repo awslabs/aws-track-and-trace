@@ -1,5 +1,7 @@
 # AWS Track & Trace Sample
 
+![Landing page](/static/landing-page.png)
+
 Sample system to track and trace vehicles and assets in the cloud. This project contains infrastructure definition and sample code for spinning up a web user interface with a map, in which you can connect your existing or simulated vehicles and assets, and visualize how they progress through their journey.
 
 * [Getting started](#getting-started)
