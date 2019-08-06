@@ -194,8 +194,6 @@ Click on the _Access_ button to start the authentication process. You should be 
 
 The UI is a Single Page Application that renders a fullscreen map and certain tools to interact with the solution. The first time you access the map it should have no assets present. You should be able to zoom and pan the map to your desire.
 
-TODO More here
-
 ### Onboarding assets
 
 You can add as many assets as you want to be shown in your map. An asset is - in essence - an [AWS IoT Thing](https://docs.aws.amazon.com/iot/latest/developerguide/iot-thing-management.html). This _Thing_ will have a state object that will handle the status of your asset at all times. 
