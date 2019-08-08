@@ -281,7 +281,7 @@ Once your assets start sending information, the elements should change to reflec
 
 ## License Summary
 
-This sample code is made available under a modified MIT license. See the [LICENSE](./LICENSE.md) file.
+This sample code is made available under a modified MIT license. See the [LICENSE](LICENSE.md) file.
 
 ### Graphical content
 
