@@ -1,7 +1,9 @@
+import cdk = require('@aws-cdk/cdk');
+
 import { CloudFrontWebDistribution, CfnCloudFrontOriginAccessIdentity, AliasConfiguration, PriceClass } from '@aws-cdk/aws-cloudfront';
 import { PolicyStatement, CanonicalUserPrincipal } from '@aws-cdk/aws-iam';
 import { Bucket } from '@aws-cdk/aws-s3';
-import { RemovalPolicy, Construct, Duration } from '@aws-cdk/core';
+import { RemovalPolicy } from '@aws-cdk/cdk';
 
 export interface WebuiProps {
   deploymentName: string;
@@ -11,7 +13,7 @@ export interface WebuiProps {
   priceClass?: PriceClass
 }
 
-export class Webui extends Construct {
+export class Webui extends cdk.Construct {
   
   /** @returns the website bucket */
   public readonly websiteBucket: Bucket;
@@ -22,7 +24,7 @@ export class Webui extends Construct {
   /** @returns the website origin access identity */
   public readonly websiteOAI: CfnCloudFrontOriginAccessIdentity;
 
-  constructor(scope: Construct, id: string, props: WebuiProps) {
+  constructor(scope: cdk.Construct, id: string, props: WebuiProps) {
     super(scope, id);
 
     // Create the OAI
@@ -34,21 +36,18 @@ export class Webui extends Construct {
 
     // Create the S3 bucket
     this.websiteBucket = new Bucket(this, 'WebsiteBucket', {
-      removalPolicy: RemovalPolicy.DESTROY
+      removalPolicy: RemovalPolicy.Destroy
     });
 
     // Configure the bucket policy
-    this.websiteBucket.addToResourcePolicy(new PolicyStatement({
-      principals: [new CanonicalUserPrincipal(this.websiteOAI.attrS3CanonicalUserId)],
-      actions: [
+    this.websiteBucket.addToResourcePolicy(new PolicyStatement()
+      .addPrincipal(new CanonicalUserPrincipal(this.websiteOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId))
+      .addActions(
         's3:GetObject',
         's3:ListBucket'
-      ],
-      resources: [
-        this.websiteBucket.bucketArn,
-        this.websiteBucket.arnForObjects('*')
-      ]
-    })
+      )
+      .addResource(this.websiteBucket.bucketArn)
+      .addResource(this.websiteBucket.arnForObjects('*'))
     );
 
     const aliasConfiguration: AliasConfiguration | undefined = props.domainName && props.certificateArn ? {
@@ -74,9 +73,9 @@ export class Webui extends Construct {
         {
           behaviors: [
             {
-              minTtl: Duration.seconds(0),
-              defaultTtl: Duration.seconds(5),
-              maxTtl: Duration.seconds(86400),
+              minTtlSeconds: 0,
+              defaultTtlSeconds: 5,
+              maxTtlSeconds: 86400,
               forwardedValues: {
                 queryString: true
               },
@@ -84,12 +83,12 @@ export class Webui extends Construct {
             }
           ],
           s3OriginSource: {
-            originAccessIdentityId: this.websiteOAI.ref,
+            originAccessIdentity: this.websiteOAI,
             s3BucketSource: this.websiteBucket
           }
         }
       ],
-      priceClass: props.priceClass || PriceClass.PRICE_CLASS_100
+      priceClass: props.priceClass || PriceClass.PriceClass100
     });
   }
 }

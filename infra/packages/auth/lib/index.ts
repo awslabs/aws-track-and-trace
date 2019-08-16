@@ -1,7 +1,7 @@
 import { Role, PolicyStatement, FederatedPrincipal, PolicyDocument } from '@aws-cdk/aws-iam';
 import { CfnPolicy } from '@aws-cdk/aws-iot';
 import { CfnUserPool, CfnUserPoolClient, CfnIdentityPool, CfnIdentityPoolRoleAttachment, CfnUserPoolGroup } from '@aws-cdk/aws-cognito';
-import { Construct, Aws } from '@aws-cdk/core';
+import { Construct, Aws } from '@aws-cdk/cdk';
 
 /**
  * @description Defines an authentication provider module for utilizing within the solution. It leverages Amazon Cognito to provide a fully managed user experience.
@@ -42,8 +42,9 @@ export class Auth extends Construct {
   constructor(parent: Construct, name: string) {
     super(parent, name);
 
-    const awsRegion = Aws.REGION;
-    const awsAccountId = Aws.ACCOUNT_ID;
+    const aws = new Aws();
+    const awsRegion = aws.region;
+    const awsAccountId = aws.accountId;
 
     this.userPool = new CfnUserPool(this, 'Users', {
       aliasAttributes: ['email'],
@@ -86,15 +87,15 @@ export class Auth extends Construct {
         'given_name', 
         'family_name'
       ],
-      userPoolId: this.userPool.ref,
+      userPoolId: this.userPool.userPoolId,
     });
 
     this.identityPool = new CfnIdentityPool(this, 'Identities', {
       allowUnauthenticatedIdentities: true,
       cognitoIdentityProviders: [
         {
-          clientId: this.userPoolClient.ref,
-          providerName: this.userPool.attrProviderName,
+          clientId: this.userPoolClient.userPoolClientId,
+          providerName: this.userPool.userPoolProviderName,
         }
       ]
     });
@@ -103,15 +104,15 @@ export class Auth extends Construct {
       assumedBy: new FederatedPrincipal('cognito-identity.amazonaws.com', {}, 'sts:AssumeRoleWithWebIdentity')
     });
 
-    this.identityPoolUnauthRole.addToPolicy(new PolicyStatement({
-      resources: [`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.ref}`],
-      actions: ['mobileanalytics:PutEvents']
-    }));
+    this.identityPoolUnauthRole.addToPolicy(new PolicyStatement()
+      .addResource(`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.identityPoolId}`)
+      .addAction('mobileanalytics:PutEvents')
+    );
 
     this.identityPoolAuthRole = new Role(this, 'AuthIdentitiesRole', {
       assumedBy: new FederatedPrincipal('cognito-identity.amazonaws.com', {
         StringEquals: {
-          'cognito-identity.amazonaws.com:aud': this.identityPool.ref
+          'cognito-identity.amazonaws.com:aud': this.identityPool.identityPoolId
         },
         'ForAnyValue:StringLike': {
           'cognito-identity.amazonaws.com:amr': 'authenticated'
@@ -119,13 +120,23 @@ export class Auth extends Construct {
       }, 'sts:AssumeRoleWithWebIdentity')
     });
 
-    this.identityPoolAuthRole.addToPolicy(new PolicyStatement({
-      resources: [`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.ref}`],
-      actions: ['mobileanalytics:PutEvents']
-    }));
+    this.identityPoolAuthRole.addToPolicy(new PolicyStatement()
+      .addResource(`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.identityPoolId}`)
+      .addAction('mobileanalytics:PutEvents')
+    );
+
+    
+    // let labMemberRoleMapping: {[key: string]: CfnIdentityPoolRoleAttachment.RoleMappingProperty} = {};
+
+    // const clientId: string = `cognito-idp-${awsRegion}.amazonaws.com/${this.userPool.userPoolId}:${this.userPoolClient.userPoolClientId}`;
+
+    // labMemberRoleMapping[clientId] = {
+    //   ambiguousRoleResolution: 'AuthenticatedRole',
+    //   type: 'Token'
+    // };
     
     this.identityPoolRoleAttachments = new CfnIdentityPoolRoleAttachment(this, 'IdentitiesRoleAttachments', {
-      identityPoolId: this.identityPool.ref,
+      identityPoolId: this.identityPool.identityPoolId,
       roles: {
         unauthenticated: this.identityPoolUnauthRole.roleArn,
         authenticated: this.identityPoolAuthRole.roleArn,
@@ -136,7 +147,7 @@ export class Auth extends Construct {
     this.adminRole = new Role(this, 'AdministratorsRole', {
       assumedBy: new FederatedPrincipal('cognito-identity.amazonaws.com', {
         StringEquals: {
-          'cognito-identity.amazonaws.com:aud': this.identityPool.ref
+          'cognito-identity.amazonaws.com:aud': this.identityPool.identityPoolId
         },
         'ForAnyValue:StringLike': {
           'cognito-identity.amazonaws.com:amr': 'authenticated'
@@ -145,37 +156,37 @@ export class Auth extends Construct {
     });
 
     // IoT Core
-    this.adminRole.addToPolicy(new PolicyStatement({
-      resources: ['*'],
-      actions: [
+    this.adminRole.addToPolicy(new PolicyStatement()
+      .addResource('*')
+      .addActions(
         'iot:Connect',
         'iot:Subscribe',
         'iot:Receive',
         'iot:Publish',
         'iot:AttachPolicy',
-        'iot:GetThingShadow'
-      ]
-    }));
+        'iot:GetThingShadow',
+      )
+    );
 
     // Analytics
-    this.adminRole.addToPolicy(new PolicyStatement({
-      resources: [`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.ref}`],
-      actions: ['mobileanalytics:PutEvents']
-    }));
+    this.adminRole.addToPolicy(new PolicyStatement()
+      .addResource(`arn:aws:cognito-identity:${awsRegion}:${awsAccountId}:identitypool/${this.identityPool.identityPoolId}`)
+      .addAction('mobileanalytics:PutEvents')
+    );
 
     this.adminGroup = new CfnUserPoolGroup(this, 'AdministratorsGroup', {
-      userPoolId: this.userPool.ref,
+      userPoolId: this.userPool.userPoolId,
       groupName: 'Administrators',
       roleArn: this.adminRole.roleArn
     });
 
     this.identityIotPolicy = new CfnPolicy(this, 'PeoplePolicy', {
       policyName: 'PeoplePolicy',
-      policyDocument: new PolicyDocument({
-        statements: [new PolicyStatement({
-          resources: ['*'],
-          actions: ['iot:*']
-        })]})
+      policyDocument: new PolicyDocument()
+        .addStatement(new PolicyStatement()
+          .addResource('*')
+          .addAction('iot:*')
+        )
     });
   }
 }

@@ -1,7 +1,6 @@
-import { Construct } from '@aws-cdk/core';
+import { Construct } from '@aws-cdk/cdk';
 import { CloudFrontWebDistribution } from '@aws-cdk/aws-cloudfront';
-import { HostedZone, IHostedZone, RecordSet, RecordTarget, RecordType } from '@aws-cdk/aws-route53';
-import { CloudFrontTarget } from '@aws-cdk/aws-route53-targets'
+import { HostedZone, IHostedZone, AliasRecord } from '@aws-cdk/aws-route53';
 
 export interface DnsProps {
   fqdn: string,
@@ -16,21 +15,23 @@ export class Dns extends Construct {
   public readonly hostedZone: IHostedZone;
 
   /** @returns the main website record set */
-  public readonly websiteMainRecordSet: RecordSet;
+  public readonly websiteMainRecordSet: AliasRecord;
 
   /** @returns the www record set */
-  public readonly websiteWwwRecordSet: RecordSet;
+  public readonly websiteWwwRecordSet: AliasRecord;
 
   constructor(scope: Construct, id: string, props: DnsProps) {
     super(scope, id);
 
     // Create the hosted zone
-    this.hostedZone = HostedZone.fromHostedZoneId(this, 'HostedZone', props.hostedZoneId);
+    this.hostedZone = HostedZone.import(this, 'HostedZone', {
+      hostedZoneId: props.hostedZoneId,
+      zoneName: props.fqdn
+    });
 
-    this.websiteMainRecordSet = new RecordSet(this, 'MainRecord', {
+    this.websiteMainRecordSet = new AliasRecord(this, 'MainRecord', {
       recordName: `${props.fqdn}.`,
-      recordType: RecordType.A,
-      target: RecordTarget.fromAlias(new CloudFrontTarget(props.target)),
+      target: props.target,
       zone: this.hostedZone
     });
   }

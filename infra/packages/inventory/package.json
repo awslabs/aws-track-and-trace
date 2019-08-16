@@ -14,14 +14,14 @@
     "typescript": "^3.1.2"
   },
   "peerDependencies": {
-    "@aws-cdk/core": "*"
+    "@aws-cdk/cdk": "^0.22.0"
   },
   "dependencies": {
-    "@aws-cdk/aws-dynamodb": "*",
-    "@aws-cdk/aws-iam": "*",
-    "@aws-cdk/aws-s3": "*",
-    "@aws-cdk/aws-sns": "*",
-    "@aws-cdk/aws-sqs": "*",
-    "@aws-cdk/core": "*"
+    "@aws-cdk/aws-dynamodb": "^0.22.0",
+    "@aws-cdk/aws-iam": "^0.22.0",
+    "@aws-cdk/aws-s3": "^0.22.0",
+    "@aws-cdk/aws-sns": "^0.22.0",
+    "@aws-cdk/aws-sqs": "^0.22.0",
+    "@aws-cdk/cdk": "^0.22.0"
   }
 }

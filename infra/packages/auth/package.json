@@ -14,11 +14,11 @@
         "typescript": "^3.1.2"
     },
     "dependencies": {
-        "@aws-cdk/aws-cognito": "*",
-        "@aws-cdk/aws-iot": "*",
-        "@aws-cdk/aws-kms": "*",
-        "@aws-cdk/aws-sqs": "*",
-        "@aws-cdk/core": "*",
+        "@aws-cdk/aws-cognito": "^0.22.0",
+        "@aws-cdk/aws-iot": "^0.22.0",
+        "@aws-cdk/aws-kms": "^0.22.0",
+        "@aws-cdk/aws-sqs": "^0.22.0",
+        "@aws-cdk/cdk": "^0.22.0",
         "@types/node": "^10.12.18"
     }
 }
