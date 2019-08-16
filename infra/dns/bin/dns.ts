@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { DnsStack } from '../lib/dns-stack';
-import { App } from '@aws-cdk/cdk';
+import { App } from '@aws-cdk/core';
 import { Config } from '../../config';
 
 
@@ -15,8 +15,6 @@ if (Config.dns) {
       region: 'us-east-1'
     }
   });
-
-  app.run();
 } else {
   console.error('ERROR: No DNS configuration specified. This is not needed');
   process.exit(1);

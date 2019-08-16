@@ -1,4 +1,4 @@
-import { RemovalPolicy, Construct } from '@aws-cdk/cdk';
+import { RemovalPolicy, Construct } from '@aws-cdk/core';
 import { Table, AttributeType } from '@aws-cdk/aws-dynamodb';
 import { Bucket } from '@aws-cdk/aws-s3';
 
@@ -22,34 +22,34 @@ export class Inventory extends Construct {
     this.assetsTable = new Table(this, 'InventoryAssetsTable', {
       partitionKey: {
         name: 'AssetId',
-        type: AttributeType.String
+        type: AttributeType.STRING
       }
     });
 
     this.sensorsTable = new Table(this, 'InventorySensorsTable', {
       partitionKey: {
         name: 'AssetId',
-        type: AttributeType.String
+        type: AttributeType.STRING
       },
       sortKey: {
         name: 'SensorId',
-        type: AttributeType.String
+        type: AttributeType.STRING
       }
     });
 
     this.conditionsTable = new Table(this, 'InventoryConditionsTable', {
       partitionKey: {
         name: 'AssetId',
-        type: AttributeType.String
+        type: AttributeType.STRING
       },
       sortKey: {
         name: 'ConditionId',
-        type: AttributeType.String
+        type: AttributeType.STRING
       }
     });
 
     this.assetsBucket = new Bucket(this, 'AssetsBucket', {
-      removalPolicy: RemovalPolicy.Destroy
+      removalPolicy: RemovalPolicy.DESTROY
     });
   }
 }

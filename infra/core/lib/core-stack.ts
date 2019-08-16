@@ -2,9 +2,9 @@ import { Auth } from '../../packages/auth';
 import { Inventory } from '../../packages/inventory';
 import { Dns } from '../../packages/dns';
 import { Webui } from '../../packages/webui';
-import { Output, Stack, App, StackProps, Aws } from '@aws-cdk/cdk';
+import { Stack, App, StackProps, Aws, CfnOutput } from '@aws-cdk/core';
 import { CfnUserPoolUser, CfnUserPoolUserToGroupAttachment } from '@aws-cdk/aws-cognito';
-import { AnyPrincipal, PolicyStatement, PolicyStatementEffect } from '@aws-cdk/aws-iam';
+import { AnyPrincipal, ArnPrincipal, PolicyStatement, Effect } from '@aws-cdk/aws-iam';
 import { ConfigModel } from '../../config-model';
 
 export interface SystemProps extends StackProps {
@@ -49,58 +49,66 @@ export class CoreStack extends Stack {
     this.inventory = new Inventory(this, 'Inventory');
 
     this.inventory.assetsBucket.addToResourcePolicy(
-      new PolicyStatement(PolicyStatementEffect.Deny)
-        .addPrincipal(new AnyPrincipal())
-        .addAction('s3:PutObject')
-        .addResource(this.inventory.assetsBucket.arnForObjects('*'))
-        .addCondition('StringNotEquals', {
-          "s3:x-amz-server-side-encryption": "aws:kms"
-        })
+      new PolicyStatement({
+        effect: Effect.DENY,
+        principals: [new AnyPrincipal()],
+        actions: ['s3:PutObject'],
+        resources: [this.inventory.assetsBucket.arnForObjects('*')],
+        conditions: {
+          'StringNotEquals': {
+            "s3:x-amz-server-side-encryption": "aws:kms"
+          }
+        }
+      })
     );
 
     this.inventory.assetsBucket.addToResourcePolicy(
-      new PolicyStatement(PolicyStatementEffect.Deny)
-        .addPrincipal(new AnyPrincipal())
-        .addAction('s3:PutObject')
-        .addResource(this.inventory.assetsBucket.arnForObjects('*'))
-        .addCondition('Null', {
-          "s3:x-amz-server-side-encryption": true
-        })
+      new PolicyStatement({
+        effect: Effect.DENY,
+        principals: [new AnyPrincipal()],
+        actions: ['s3:PutObject'],
+        resources: [this.inventory.assetsBucket.arnForObjects('*')],
+        conditions: {
+          'Null': {
+            "s3:x-amz-server-side-encryption": true
+          }
+        }
+      })
     );
 
     this.inventory.assetsBucket.addToResourcePolicy(
-      new PolicyStatement()
-        .addArnPrincipal(this.auth.adminRole.roleArn)
-        .addActions(
+      new PolicyStatement({
+        principals: [new ArnPrincipal(this.auth.adminRole.roleArn)],
+        actions: [
           's3:GetObject',
           's3:PutObject'
-        )
-        .addResource(this.inventory.assetsBucket.arnForObjects('*'))
-    );
+        ],
+        resources: [this.inventory.assetsBucket.arnForObjects('*')]
+      }));
 
-    this.auth.adminRole.addToPolicy(new PolicyStatement()
-      .addActions(
+    this.auth.adminRole.addToPolicy(new PolicyStatement({
+      actions: [
         's3:GetObject',
         's3:PutObject'
-      )
-      .addResource(this.inventory.assetsBucket.arnForObjects('*'))
-    );
+      ],
+      resources: [this.inventory.assetsBucket.arnForObjects('*')]
+    }));
 
-    this.auth.adminRole.addToPolicy(new PolicyStatement()
-      .addActions(
+    this.auth.adminRole.addToPolicy(new PolicyStatement({
+      actions: [
         'dynamodb:GetItem',
         'dynamodb:PutItem',
         'dynamodb:Query',
         'dynamodb:Scan',
         'dynamodb:DeleteItem',
         'dynamodb:UpdateItem'
-      )
-      .addResources(
+      ],
+      resources: [
         this.inventory.assetsTable.tableArn,
         this.inventory.conditionsTable.tableArn,
         this.inventory.sensorsTable.tableArn
-      )
-    );
+      ]
+    }));
 
     this.createAdminUser(props);
     this.generateOutputs(props);
@@ -109,7 +117,7 @@ export class CoreStack extends Stack {
   createAdminUser (props: SystemProps) {
     const user = new CfnUserPoolUser(this, `AdminUser`, {
       username: props.data.administrator.username,
-      userPoolId: this.auth.userPool.userPoolId,
+      userPoolId: this.auth.userPool.ref,
       userAttributes: [
         {
           name: 'email',
@@ -123,38 +131,35 @@ export class CoreStack extends Stack {
     });
 
     new CfnUserPoolUserToGroupAttachment(this, `AdminAttachment`, {
-      userPoolId: this.auth.userPool.userPoolId,
-      groupName: this.auth.adminGroup.userPoolGroupName,
-      username: user.userPoolUserName
+      userPoolId: this.auth.userPool.ref,
+      groupName: this.auth.adminGroup.ref,
+      username: user.ref
     });
   }
 
   generateOutputs (props: SystemProps) {
-    const aws = new Aws();
-    const disableExport = true;
-    
     // Core
-    new Output(this, 'AwsAccountId', { value: aws.accountId, disableExport });
-    new Output(this, 'AwsRegion', { value: aws.region, disableExport });
+    new CfnOutput(this, 'AwsAccountId', { value: Aws.ACCOUNT_ID });
+    new CfnOutput(this, 'AwsRegion', { value: Aws.REGION });
 
     // Auth
-    new Output(this, 'UserPoolId', { value: this.auth.userPool.userPoolId, disableExport });
-    new Output(this, 'UserPoolClientId', { value: this.auth.userPoolClient.userPoolClientId, disableExport });
-    new Output(this, 'IdentityPoolId', { value: this.auth.identityPool.identityPoolId, disableExport });
-    new Output(this, 'PeopleIotPolicy', { value: this.auth.identityIotPolicy.policyName, disableExport });
-    new Output(this, 'AuthenticatedRoleArn', { value: this.auth.identityPoolAuthRole.roleArn, disableExport });
-    new Output(this, 'UnauthenticatedRoleArn', { value: this.auth.identityPoolUnauthRole.roleArn, disableExport });
+    new CfnOutput(this, 'UserPoolId', { value: this.auth.userPool.ref });
+    new CfnOutput(this, 'UserPoolClientId', { value: this.auth.userPoolClient.ref });
+    new CfnOutput(this, 'IdentityPoolId', { value: this.auth.identityPool.ref });
+    new CfnOutput(this, 'PeopleIotPolicy', { value: this.auth.identityIotPolicy.policyName! });
+    new CfnOutput(this, 'AuthenticatedRoleArn', { value: this.auth.identityPoolAuthRole.roleArn });
+    new CfnOutput(this, 'UnauthenticatedRoleArn', { value: this.auth.identityPoolUnauthRole.roleArn });
 
     // Inventory
-    new Output(this, 'InventoryAssetsTableName', { value: this.inventory.assetsTable.tableName, disableExport });
-    new Output(this, 'InventoryConditionsTableName', { value: this.inventory.conditionsTable.tableName, disableExport });
-    new Output(this, 'InventorySensorsTableName', { value: this.inventory.sensorsTable.tableName, disableExport });
-    new Output(this, 'InventoryAssetsBucketName', { value: this.inventory.assetsBucket.bucketName, disableExport });
+    new CfnOutput(this, 'InventoryAssetsTableName', { value: this.inventory.assetsTable.tableName });
+    new CfnOutput(this, 'InventoryConditionsTableName', { value: this.inventory.conditionsTable.tableName });
+    new CfnOutput(this, 'InventorySensorsTableName', { value: this.inventory.sensorsTable.tableName });
+    new CfnOutput(this, 'InventoryAssetsBucketName', { value: this.inventory.assetsBucket.bucketName });
 
     // Web UI
-    new Output(this, 'WebUiBucketName', { value: this.webui.websiteBucket.bucketName, disableExport });
-    new Output(this, 'WebUiDistributionId', { value: this.webui.websiteDistribution.distributionId, disableExport });
-    new Output(this, 'WebUiDistributionDomainName', { value: this.webui.websiteDistribution.domainName, disableExport });
+    new CfnOutput(this, 'WebUiBucketName', { value: this.webui.websiteBucket.bucketName });
+    new CfnOutput(this, 'WebUiDistributionId', { value: this.webui.websiteDistribution.distributionId });
+    new CfnOutput(this, 'WebUiDistributionDomainName', { value: this.webui.websiteDistribution.domainName });
 
     const callbackUrls = [this.webui.websiteDistribution.domainName];
     if (props.data.dns) {
@@ -165,7 +170,7 @@ export class CoreStack extends Stack {
     const loginCallbackUrls = callbackUrls.map(url => `"https://${url}/login"`);
     const logoutCallbackUrls = callbackUrls.map(url => `"https://${url}/logout"`);
 
-    new Output(this, 'LoginCallbackUrls', { value: `[${loginCallbackUrls.join(',')}]`, disableExport });
-    new Output(this, 'LogoutCallbackUrls', { value: `[${logoutCallbackUrls.join(',')}]`, disableExport });
+    new CfnOutput(this, 'LoginCallbackUrls', { value: `[${loginCallbackUrls.join(',')}]` });
+    new CfnOutput(this, 'LogoutCallbackUrls', { value: `[${logoutCallbackUrls.join(',')}]` });
   }
 }
