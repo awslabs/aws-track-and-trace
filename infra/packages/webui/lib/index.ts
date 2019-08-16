@@ -1,9 +1,7 @@
-import cdk = require('@aws-cdk/cdk');
-
 import { CloudFrontWebDistribution, CfnCloudFrontOriginAccessIdentity, AliasConfiguration, PriceClass } from '@aws-cdk/aws-cloudfront';
 import { PolicyStatement, CanonicalUserPrincipal } from '@aws-cdk/aws-iam';
 import { Bucket } from '@aws-cdk/aws-s3';
-import { RemovalPolicy } from '@aws-cdk/cdk';
+import { RemovalPolicy, Construct, Duration } from '@aws-cdk/core';
 
 export interface WebuiProps {
   deploymentName: string;
@@ -13,7 +11,7 @@ export interface WebuiProps {
   priceClass?: PriceClass
 }
 
-export class Webui extends cdk.Construct {
+export class Webui extends Construct {
   
   /** @returns the website bucket */
   public readonly websiteBucket: Bucket;
@@ -24,7 +22,7 @@ export class Webui extends cdk.Construct {
   /** @returns the website origin access identity */
   public readonly websiteOAI: CfnCloudFrontOriginAccessIdentity;
 
-  constructor(scope: cdk.Construct, id: string, props: WebuiProps) {
+  constructor(scope: Construct, id: string, props: WebuiProps) {
     super(scope, id);
 
     // Create the OAI
@@ -36,18 +34,21 @@ export class Webui extends cdk.Construct {
 
     // Create the S3 bucket
     this.websiteBucket = new Bucket(this, 'WebsiteBucket', {
-      removalPolicy: RemovalPolicy.Destroy
+      removalPolicy: RemovalPolicy.DESTROY
     });
 
     // Configure the bucket policy
-    this.websiteBucket.addToResourcePolicy(new PolicyStatement()
-      .addPrincipal(new CanonicalUserPrincipal(this.websiteOAI.cloudFrontOriginAccessIdentityS3CanonicalUserId))
-      .addActions(
+    this.websiteBucket.addToResourcePolicy(new PolicyStatement({
+      principals: [new CanonicalUserPrincipal(this.websiteOAI.attrS3CanonicalUserId)],
+      actions: [
         's3:GetObject',
         's3:ListBucket'
-      )
-      .addResource(this.websiteBucket.bucketArn)
-      .addResource(this.websiteBucket.arnForObjects('*'))
+      ],
+      resources: [
+        this.websiteBucket.bucketArn,
+        this.websiteBucket.arnForObjects('*')
+      ]
+    })
     );
 
     const aliasConfiguration: AliasConfiguration | undefined = props.domainName && props.certificateArn ? {
@@ -73,9 +74,9 @@ export class Webui extends cdk.Construct {
         {
           behaviors: [
             {
-              minTtlSeconds: 0,
-              defaultTtlSeconds: 5,
-              maxTtlSeconds: 86400,
+              minTtl: Duration.seconds(0),
+              defaultTtl: Duration.seconds(5),
+              maxTtl: Duration.seconds(86400),
               forwardedValues: {
                 queryString: true
               },
@@ -83,12 +84,12 @@ export class Webui extends cdk.Construct {
             }
           ],
           s3OriginSource: {
-            originAccessIdentity: this.websiteOAI,
+            originAccessIdentityId: this.websiteOAI.ref,
             s3BucketSource: this.websiteBucket
           }
         }
       ],
-      priceClass: props.priceClass || PriceClass.PriceClass100
+      priceClass: props.priceClass || PriceClass.PRICE_CLASS_100
     });
   }
 }
