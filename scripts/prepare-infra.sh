@@ -4,7 +4,7 @@ project_dir="${script_dir}/.."
 
 infra_core_folder=${project_dir}/infra/core
 packages_folder=${project_dir}/infra/packages/
-cdk_packages=("auth dns webui")
+cdk_packages=("auth dns inventory webui")
 
 echo "INFO: Preparing your environment"
 
