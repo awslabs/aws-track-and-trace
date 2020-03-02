@@ -223,7 +223,7 @@ export default {
   },
   methods: {
     getAssetStyle (asset) {
-      const lastUpdate = this.filters.lastUpdate(asset);
+      const lastUpdate = this.$options.filters.lastUpdate(asset);
       const now = new Date().getTime();
 
       const diff = now - lastUpdate;
