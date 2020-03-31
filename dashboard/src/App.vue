@@ -7,7 +7,6 @@
 
 <script>
 import Framework from '@/components/Framework';
-
 import AuthService from '@/services/AuthService'
 
 export default {

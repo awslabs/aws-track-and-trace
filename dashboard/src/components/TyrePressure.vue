@@ -20,7 +20,7 @@ export default {
   computed: {
     parsedTyres () {
       const ret = {};
-      for (let param in this.tyres) {
+      for (const param in this.tyres) {
         const pressure = Math.round(this.tyres[param] * 100) / 100;
         ret[param] = {
           pressure,
@@ -40,7 +40,6 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style lang="scss" scoped>
-@import '../assets/colors.scss';
 
 .tyre-pressure {
   width: 100%;

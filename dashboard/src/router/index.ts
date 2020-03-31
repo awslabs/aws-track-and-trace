@@ -1,9 +1,9 @@
 import Vue from 'vue'
 import Router from 'vue-router'
 
-import Dashboard from '@/components/Dashboard';
-import LandingPage from '@/components/LandingPage';
-import Login from '@/components/Login'
+import Dashboard from '@/components/Dashboard.vue';
+import LandingPage from '@/components/LandingPage.vue';
+import Login from '@/components/Login.vue';
 
 Vue.use(Router)
 
